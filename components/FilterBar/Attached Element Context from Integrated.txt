@@ -1,0 +1,57 @@
+Attached Element Context from Integrated Browser
+
+Element: section.AdminShell_card__9XO_J
+
+URL: http://localhost:3000/admin/settings
+
+HTML Path: div.AdminShell_adminLayout__h3xUm > div.AdminShell_workspace__3b_0e > main.AdminShell_mainContent__uOQhZ > section.AdminShell_card__9XO_J
+
+Outer HTML:
+```html
+<section class="AdminShell_card__9XO_J"><div><div><h2>حماية النطاق من انتحال البريد (SPF &amp; DMARC) وترويسات الأمان</h2><p class="AdminShell_pageSubtitle__LcWCx">أضف سجلات TXT التالية في لوحة تحكم DNS الخاصة بنطاق aqurivo.store لمنع أي جهة من إرسال بريد مزيف باسم موقعك.</p></div><button class="Button_button__96uC6 Button_secondary__uuOdH Button_sm__pnQzd" type="button"><span class="Button_label__hCLAL">فحص سجلات DNS الآن</span></button></div><div class="AdminShell_mobileAdminCards__3rA_E" style="display: flex;"><div><div><div><h3>1. سجل SPF (منع إرسال بريد مزيف باسم النطاق)</h3><p>Type: <strong>TXT</strong> | Host / Name: <strong>@</strong> (aqurivo.store)</p></div><button class="Button_button__96uC6 Button_secondary__uuOdH Button_sm__pnQzd" type="button"><span class="Button_label__hCLAL">نسخ القيمة</span></button></div><div><div><span>TXT Value</span><span dir="ltr">v=spf1 include:spf.improvmx.com ~all</span></div></div></div><div><div><div><h3>2. سجل DMARC — وضع المراقبة الموصى به للبدء (p=none)</h3><p>Type: <strong>TXT</strong> | Host / Name: <strong>_dmarc</strong> (_dmarc.aqurivo.store)</p></div><button class="Button_button__96uC6 Button_secondary__uuOdH Button_sm__pnQzd" type="button"><span class="Button_label__hCLAL">نسخ القيمة</span></button></div><div><div><span>TXT Value</span><span dir="ltr">v=DMARC1; p=none; sp=none; adkim=s; aspf=s; rua=mailto:contact@aqurivo.store</span></div></div></div><div><div><div><h3>3. سجل DMARC — وضع الحظر الصارم (p=reject)</h3><p>Type: <strong>TXT</strong> | Host / Name: <strong>_dmarc</strong> (_dmarc.aqurivo.store)</p></div><button class="Button_button__96uC6 Button_secondary__uuOdH Button_sm__pnQzd" type="button"><span class="Button_label__hCLAL">نسخ القيمة</span></button></div><div><div><span>TXT Value</span><span dir="ltr">v=DMARC1; p=reject; sp=reject; adkim=s; aspf=s; rua=mailto:contact@aqurivo.store</span></div></div></div></div></section>
+```
+
+Dimensions:
+- top: 182px
+- left: 16px
+- width: 485px
+- height: 622px
+
+CSS:
+```css
+*, :after, :before { box-sizing:border-box;margin:0;padding:0 }
+.AdminShell_card__9XO_J { background-color:var(--color-bg-elevated);border:1px solid var(--color-border-hairline);border-radius:var(--radius-md);padding:var(--space-4);display:flex;flex-direction:column;gap:var(--space-4);min-inline-size:0;max-inline-size:100% }
+
+/* Inherited */
+body { font-family:var(--font-body); font-size:var(--text-base); line-height:var(--leading-normal); letter-spacing:var(--letter-spacing-body); color:var(--color-text-primary) }
+html { color:var(--color-text-primary); font-size:16px }
+
+/* Resolved values */
+margin: 0px;
+padding: 16px;
+background-color: rgb(255, 255, 255);
+box-sizing: border-box;
+color: rgb(20, 24, 23);
+display: flex;
+flex-direction: column;
+font-family: Cairo, -apple-system, BlinkMacSystemFont, sans-serif, Cairo, -apple-system, BlinkMacSystemFont, sans-serif;
+font-size: 15.5px;
+height: 621.729px;
+letter-spacing: normal;
+line-height: 25.575px;
+max-inline-size: 100%;
+min-inline-size: 0px;
+unicode-bidi: isolate /*UA*/;
+width: 484.667px;
+
+/* CSS variables */
+--color-border-hairline: #e4e1d8;
+--space-4: 1rem;
+--font-body: "Cairo",-apple-system,BlinkMacSystemFont,sans-serif,"Cairo",-apple-system,BlinkMacSystemFont,sans-serif;
+--color-bg-elevated: #fff;
+--leading-normal: 1.65;
+--radius-md: 10px;
+--letter-spacing-body: 0em;
+--color-text-primary: #141817;
+--text-base: .96875rem;
+```

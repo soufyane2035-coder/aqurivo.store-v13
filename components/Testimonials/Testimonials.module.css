@@ -1,0 +1,207 @@
+@keyframes cardFadeUp {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.section {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-6);
+  padding-block-start: var(--space-8);
+  border-block-start: 1px solid var(--color-border-hairline);
+}
+
+.headerRow {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: var(--space-4);
+}
+
+.headingBlock {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+}
+
+.heading {
+  font-size: var(--text-xl);
+  font-weight: 700;
+  color: var(--color-text, var(--color-text-primary));
+  margin: 0;
+}
+
+.subheading {
+  font-size: var(--text-sm);
+  color: var(--color-text-secondary);
+  margin: 0;
+}
+
+/* Mobile Horizontal Scroll-Snap Carousel -> Desktop 3-Column Grid */
+.cardsTrack {
+  display: flex;
+  gap: var(--space-4);
+  overflow-x: auto;
+  scroll-snap-type: x mandatory;
+  scroll-behavior: smooth;
+  padding-block-end: var(--space-2);
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+}
+
+.cardsTrack::-webkit-scrollbar {
+  display: none;
+}
+
+@media (min-width: 768px) {
+  .cardsTrack {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: var(--space-5);
+    overflow-x: visible;
+    scroll-snap-type: none;
+    padding-block-end: 0;
+  }
+}
+
+.card {
+  flex: 0 0 86%;
+  scroll-snap-align: start;
+  background-color: var(--color-surface, var(--color-bg-elevated));
+  border: 1px solid var(--color-border-hairline);
+  border-radius: 14px;
+  padding: var(--space-6);
+  box-shadow: var(--shadow-card);
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  gap: var(--space-4);
+  animation: cardFadeUp 0.35s cubic-bezier(0.16, 1, 0.3, 1) both;
+  transition:
+    border-color 0.2s ease,
+    box-shadow 0.2s ease,
+    transform 0.2s ease;
+}
+
+.card:hover {
+  border-color: var(--color-accent-border);
+  box-shadow: var(--shadow-card-hover);
+  transform: translateY(-2px);
+}
+
+@media (min-width: 768px) {
+  .card {
+    flex: initial;
+  }
+}
+
+.cardTop {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+}
+
+.starsRow {
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+  font-size: 18px;
+  line-height: 1;
+}
+
+.starFilled {
+  color: #f5a623;
+}
+
+.starEmpty {
+  color: var(--color-border, #cbc6b9);
+}
+
+.quoteText {
+  font-style: italic;
+  font-size: var(--text-base);
+  color: var(--color-text, var(--color-text-primary));
+  line-height: var(--leading-relaxed);
+  margin: 0;
+}
+
+.cardFooter {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-3);
+  padding-top: var(--space-3);
+  border-block-start: 1px solid var(--color-border-hairline);
+}
+
+.authorName {
+  font-size: var(--text-xs);
+  font-weight: 700;
+  color: var(--color-text-secondary);
+  margin: 0;
+}
+
+.dateLabel {
+  font-size: 11px;
+  color: var(--color-text-muted);
+}
+
+.actionRow {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--space-4);
+}
+
+.addBtn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-2);
+  min-block-size: 44px;
+  padding-inline: var(--space-6);
+  border-radius: 999px;
+  border: 1.5px solid var(--color-primary, var(--color-accent-primary));
+  background-color: var(--color-accent-subtle);
+  color: var(--color-primary, var(--color-accent-primary));
+  font-size: var(--text-sm);
+  font-weight: 700;
+  font-family: inherit;
+  cursor: pointer;
+  transition:
+    background-color 0.2s ease,
+    color 0.2s ease,
+    transform 0.15s ease;
+}
+
+.addBtn:hover {
+  background-color: var(--color-primary, var(--color-accent-primary));
+  color: var(--color-text-on-accent, #ffffff);
+}
+
+.addBtn:active {
+  transform: scale(0.98);
+}
+
+.emptyTestimonialsState {
+  padding: var(--space-8) var(--space-4);
+  text-align: center;
+  background-color: var(--color-surface-subtle);
+  border: 1px dashed var(--color-border-hairline);
+  border-radius: var(--radius-lg);
+}
+
+.emptyTestimonialsText {
+  font-size: var(--text-sm);
+  color: var(--color-text-secondary);
+  margin: 0;
+  max-inline-size: 50ch;
+  margin-inline: auto;
+}

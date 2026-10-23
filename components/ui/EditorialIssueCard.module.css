@@ -1,0 +1,195 @@
+.card {
+  position: relative;
+  display: flex;
+  align-items: stretch;
+  gap: 12px;
+  padding: 11px 12px;
+  background-color: var(--color-bg-elevated);
+  border: 1px solid var(--color-border-hairline);
+  border-inline-start: 3px solid var(--color-accent-primary);
+  border-radius: var(--radius-md);
+  box-shadow: var(--shadow-card);
+  text-decoration: none;
+  color: inherit;
+  min-inline-size: 0;
+  transition:
+    transform var(--duration-fast) var(--ease-out-quart),
+    border-color var(--duration-fast) var(--ease-out-quart),
+    box-shadow var(--duration-fast) var(--ease-out-quart),
+    background-color var(--duration-fast) var(--ease-out-quart);
+}
+
+@media (min-width: 640px) {
+  .card {
+    gap: 14px;
+    padding: 13px 15px;
+  }
+}
+
+.card:hover {
+  transform: translateY(-2px);
+  border-color: var(--color-accent-border);
+  border-inline-start-color: var(--color-accent-primary);
+  box-shadow: var(--shadow-card-hover);
+}
+
+.thumbFrame {
+  position: relative;
+  width: 88px;
+  min-block-size: 88px;
+  align-self: center;
+  aspect-ratio: 1 / 1;
+  border-radius: var(--radius-sm);
+  overflow: hidden;
+  background-color: #ffffff;
+  border: 1px solid var(--color-border-hairline);
+  flex-shrink: 0;
+}
+
+@media (min-width: 640px) {
+  .thumbFrame {
+    width: 102px;
+    min-block-size: 102px;
+  }
+}
+
+.thumbImage {
+  object-fit: cover;
+  transition: transform var(--duration-normal) var(--ease-out-quart);
+}
+
+.card:hover .thumbImage {
+  transform: scale(1.04);
+}
+
+.contentCol {
+  flex: 1;
+  min-inline-size: 0;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  gap: 5px;
+}
+
+.metaTopRow {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 6px;
+  font-size: 11px;
+  line-height: 1.2;
+}
+
+.categoryBadge {
+  display: inline-flex;
+  align-items: center;
+  padding: 2px 7px;
+  border-radius: var(--radius-xs);
+  background-color: var(--color-accent-subtle);
+  color: var(--color-accent-primary);
+  font-weight: 700;
+  font-size: 10.5px;
+  white-space: nowrap;
+}
+
+.guideScopeBadge {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  padding: 2px 6px;
+  border-radius: var(--radius-xs);
+  background-color: var(--color-bg-subtle);
+  color: var(--color-text-secondary);
+  font-weight: 600;
+  font-size: 10.5px;
+  white-space: nowrap;
+}
+
+.readTime {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  color: var(--color-text-muted);
+  font-size: 10.5px;
+  font-weight: 500;
+  margin-inline-start: auto;
+}
+
+.title {
+  font-family: var(--font-display);
+  font-size: 14px;
+  font-weight: 700;
+  line-height: 1.38;
+  color: var(--color-text-primary);
+  margin: 0;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+  transition: color var(--duration-fast);
+}
+
+@media (min-width: 640px) {
+  .title {
+    font-size: 15px;
+  }
+}
+
+.card:hover .title {
+  color: var(--color-accent-primary);
+}
+
+.excerpt {
+  font-size: 12px;
+  color: var(--color-text-secondary);
+  line-height: 1.48;
+  display: -webkit-box;
+  -webkit-line-clamp: 1;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+  margin: 0;
+}
+
+@media (min-width: 640px) {
+  .excerpt {
+    -webkit-line-clamp: 2;
+  }
+}
+
+.footerRow {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  margin-block-start: 2px;
+}
+
+.dateText {
+  font-size: 10.5px;
+  color: var(--color-text-muted);
+  white-space: nowrap;
+}
+
+.actionPill {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 3px 9px;
+  border-radius: var(--radius-xs);
+  background-color: var(--color-bg-subtle);
+  border: 1px solid var(--color-border-hairline);
+  color: var(--color-accent-primary);
+  font-size: 11px;
+  font-weight: 700;
+  white-space: nowrap;
+  transition:
+    background-color var(--duration-fast),
+    color var(--duration-fast),
+    border-color var(--duration-fast);
+}
+
+.card:hover .actionPill {
+  background-color: var(--color-accent-primary);
+  border-color: var(--color-accent-primary);
+  color: var(--color-text-on-accent);
+}

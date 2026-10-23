@@ -1,0 +1,64 @@
+.brandLockup {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  color: var(--color-text-primary);
+  white-space: nowrap;
+  flex-shrink: 0;
+  text-decoration: none;
+}
+
+.mark {
+  flex-shrink: 0;
+}
+
+.wordmarkSvg {
+  display: block;
+  flex-shrink: 0;
+  color: var(--color-text-primary);
+}
+
+.sm .mark {
+  width: 30px;
+  height: 30px;
+}
+
+.sm .wordmarkSvg {
+  height: 16px;
+  width: auto;
+}
+
+.md .mark {
+  width: 36px;
+  height: 36px;
+}
+
+.md .wordmarkSvg {
+  height: 19px;
+  width: auto;
+}
+
+.lg .mark {
+  width: 44px;
+  height: 44px;
+}
+
+.lg .wordmarkSvg {
+  height: 23px;
+  width: auto;
+}
+
+@media (max-width: 360px) {
+  .brandLockup {
+    gap: 6px;
+  }
+
+  .sm .mark {
+    width: 25px;
+    height: 25px;
+  }
+
+  .sm .wordmarkSvg {
+    height: 14px;
+  }
+}

@@ -1,0 +1,611 @@
+.filterBarContainer {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+  width: 100%;
+  min-inline-size: 0;
+}
+
+.searchOuterWrap {
+  position: relative;
+  width: 100%;
+  z-index: 60;
+}
+
+.liveDropdown {
+  position: absolute;
+  inset-block-start: calc(100% + 8px);
+  inset-inline: 0;
+  background-color: var(--color-bg-elevated);
+  border: 1px solid var(--color-border-strong);
+  border-radius: 16px;
+  box-shadow: 0 18px 40px rgba(0, 0, 0, 0.25);
+  overflow: hidden;
+  text-align: start;
+  z-index: 80;
+}
+
+.liveScrollArea {
+  max-block-size: 320px;
+  overflow-y: auto;
+}
+
+.liveGroupBlock {
+  display: flex;
+  flex-direction: column;
+}
+
+.liveGroupTitle {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 14px;
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--color-accent-primary);
+  background-color: var(--color-accent-subtle);
+  border-block-end: 1px solid var(--color-border-hairline);
+}
+
+.liveList {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.liveListItem {
+  border-block-end: 1px solid var(--color-border-hairline);
+}
+
+.liveListItem:last-child {
+  border-block-end: none;
+}
+
+.liveResultLink {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  padding: 8px 12px;
+  text-decoration: none;
+  color: var(--color-text-primary);
+  transition: background-color 0.15s ease;
+}
+
+.liveResultLink:hover {
+  background-color: var(--color-accent-subtle);
+}
+
+.liveThumbWrap {
+  flex-shrink: 0;
+  width: 40px;
+  height: 40px;
+  border-radius: 8px;
+  background-color: var(--color-bg-subtle);
+  border: 1px solid var(--color-border-hairline);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+}
+
+.liveThumb {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+}
+
+.liveThumbCover {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.liveThumbFallback {
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--color-accent-primary);
+}
+
+.liveInfoCol {
+  flex: 1;
+  min-inline-size: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.liveItemTitle {
+  font-size: 12.5px;
+  font-weight: 700;
+  color: var(--color-text-primary);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.liveItemMeta {
+  font-size: 11px;
+  color: var(--color-text-muted);
+}
+
+.livePriceCol {
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.liveGuideTag {
+  font-size: 10.5px;
+  font-weight: 700;
+  color: var(--color-accent-primary);
+  background-color: var(--color-accent-subtle);
+  border: 1px solid var(--color-accent-border);
+  padding: 2px 7px;
+  border-radius: 6px;
+  white-space: nowrap;
+}
+
+.livePriceBadge {
+  font-size: 12.5px;
+  font-weight: 700;
+  color: var(--color-accent-primary);
+}
+
+.liveArrow {
+  color: var(--color-text-muted);
+}
+
+/* 1. Prominent Temu-Style Search Bar with Solid Brand Pill Button */
+.searchRow {
+  position: relative;
+  display: flex;
+  align-items: center;
+  width: 100%;
+  height: 52px;
+  background-color: var(--color-surface);
+  border: 2px solid var(--color-accent-border);
+  border-radius: 999px;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.12);
+  transition:
+    border-color 0.2s ease,
+    box-shadow 0.2s ease,
+    background-color 0.2s ease;
+}
+
+.searchRow:hover {
+  border-color: var(--color-primary);
+}
+
+.searchRow:focus-within {
+  border-color: var(--color-primary);
+  box-shadow:
+    0 0 0 4px var(--color-accent-subtle),
+    0 6px 20px rgba(0, 0, 0, 0.16);
+}
+
+.searchInput {
+  width: 100%;
+  height: 100%;
+  background: transparent;
+  border: none;
+  outline: none;
+  color: var(--color-text);
+  font-size: var(--text-base);
+  font-weight: 500;
+  font-family: inherit;
+  padding-inline-start: var(--space-5);
+  padding-inline-end: 132px;
+  border-radius: 999px;
+}
+
+.searchInput::placeholder {
+  color: var(--color-text-secondary);
+  opacity: 0.85;
+}
+
+.searchInput::-webkit-search-cancel-button {
+  -webkit-appearance: none;
+  appearance: none;
+}
+
+/* Prominent Pill Action Button on Left in RTL / Right in LTR (inset-inline-end) */
+.searchActionBtn {
+  position: absolute;
+  inset-inline-end: 5px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  height: 40px;
+  padding-inline: var(--space-4);
+  border-radius: 999px;
+  border: none;
+  background-color: var(--color-primary);
+  color: var(--color-text-on-accent, #ffffff);
+  font-size: var(--text-xs);
+  font-weight: 700;
+  font-family: inherit;
+  cursor: pointer;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.18);
+  transition:
+    background-color 0.2s ease,
+    transform 0.15s ease;
+}
+
+.searchActionBtn:hover {
+  background-color: var(--color-accent-hover);
+}
+
+.searchActionBtn:active {
+  transform: scale(0.97);
+}
+
+/* Clear X button appears only when query has text */
+.clearBtn {
+  position: absolute;
+  inset-inline-end: 94px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  background-color: var(--color-bg-subtle);
+  color: var(--color-text-secondary);
+  border: 1px solid var(--color-border-hairline);
+  cursor: pointer;
+  transition:
+    background-color 0.2s ease,
+    color 0.2s ease;
+}
+
+.clearBtn:hover {
+  background-color: var(--color-bg-muted);
+  color: var(--color-text);
+}
+
+/* 2. Harmonized Filter Strip (Sort + Price + Live Count in one compact row) */
+.controlsRow {
+  position: relative;
+  display: flex;
+  flex-direction: row;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-2);
+  width: 100%;
+  min-inline-size: 0;
+}
+
+.dropdownsGroup {
+  position: relative;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-2);
+  width: auto;
+  flex-shrink: 0;
+}
+
+.dropdownWrapper {
+  position: static;
+}
+
+@media (min-width: 640px) {
+  .dropdownWrapper {
+    position: relative;
+  }
+}
+
+/* Pill Button for Sort & Price */
+.pillButton {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  height: 38px;
+  padding-inline: var(--space-4);
+  border-radius: 999px;
+  border: 1px solid var(--color-border);
+  background-color: var(--color-surface);
+  color: var(--color-text);
+  font-size: var(--text-xs);
+  font-weight: 600;
+  cursor: pointer;
+  white-space: nowrap;
+  max-inline-size: 100%;
+  transition:
+    background-color 0.2s ease,
+    border-color 0.2s ease,
+    color 0.2s ease;
+}
+
+.pillButton:hover {
+  border-color: var(--color-primary);
+}
+
+.pillButtonActive {
+  background-color: var(--color-primary);
+  border-color: var(--color-primary);
+  color: var(--color-text-on-accent, #ffffff);
+}
+
+.pillButtonActive:hover {
+  background-color: var(--color-accent-hover);
+  border-color: var(--color-accent-hover);
+}
+
+/* Custom Dropdown Panel with Fade + Slide Down Animation */
+@keyframes dropdownFadeSlide {
+  from {
+    opacity: 0;
+    transform: translateY(-6px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.dropdownMenu {
+  position: absolute;
+  inset-block-start: calc(100% + 6px);
+  inset-inline-start: 0;
+  inset-inline-end: 0;
+  z-index: 50;
+  background-color: var(--color-surface);
+  border: 1px solid var(--color-border-hairline);
+  border-radius: 12px;
+  box-shadow: var(--shadow-card-hover);
+  padding: var(--space-2);
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  animation: dropdownFadeSlide 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+@media (min-width: 640px) {
+  .dropdownMenu {
+    inset-inline-end: auto;
+    min-inline-size: 210px;
+  }
+}
+
+.dropdownOption {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  width: 100%;
+  padding-block: var(--space-2);
+  padding-inline: var(--space-3);
+  border-radius: 8px;
+  background: transparent;
+  border: none;
+  color: var(--color-text);
+  font-size: var(--text-xs);
+  font-weight: 500;
+  text-align: start;
+  cursor: pointer;
+  transition:
+    background-color 0.15s ease,
+    color 0.15s ease;
+}
+
+.dropdownOption:hover {
+  background-color: var(--color-bg-subtle);
+}
+
+.dropdownOptionActive {
+  background-color: var(--color-accent-subtle);
+  color: var(--color-primary);
+  font-weight: 700;
+}
+
+/* Price Range Slider Dropdown */
+.priceDropdownPanel {
+  position: absolute;
+  inset-block-start: calc(100% + 6px);
+  inset-inline-start: 0;
+  inset-inline-end: 0;
+  z-index: 50;
+  background-color: var(--color-surface);
+  border: 1px solid var(--color-border-hairline);
+  border-radius: 12px;
+  box-shadow: var(--shadow-card-hover);
+  padding: var(--space-4);
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+  animation: dropdownFadeSlide 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+@media (min-width: 640px) {
+  .priceDropdownPanel {
+    inset-inline-end: auto;
+    inline-size: 260px;
+  }
+}
+
+.priceHeaderRow {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-2);
+}
+
+.priceLiveLabel {
+  font-size: var(--text-xs);
+  font-weight: 700;
+  color: var(--color-text);
+}
+
+.priceResetBtn {
+  background: transparent;
+  border: none;
+  padding: 0;
+  font-size: var(--text-xs);
+  font-weight: 600;
+  color: var(--color-primary);
+  cursor: pointer;
+}
+
+.priceResetBtn:hover {
+  text-decoration: underline;
+}
+
+/* Pure CSS Custom Range Slider */
+.rangeSlider {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 100%;
+  height: 6px;
+  border-radius: 999px;
+  background: var(--color-bg-muted);
+  outline: none;
+  accent-color: var(--color-primary);
+  cursor: pointer;
+}
+
+.rangeSlider::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  background: var(--color-primary);
+  border: 2px solid #ffffff;
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.25);
+  cursor: pointer;
+  transition: transform 0.15s ease;
+}
+
+.rangeSlider::-webkit-slider-thumb:hover {
+  transform: scale(1.12);
+}
+
+.rangeSlider::-moz-range-thumb {
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  background: var(--color-primary);
+  border: 2px solid #ffffff;
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.25);
+  cursor: pointer;
+}
+
+.priceTicks {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  font-size: 11px;
+  color: var(--color-text-muted);
+}
+
+/* c) Store Filter Pill Chips — Wrapped cleanly so zero buttons are cut off */
+.storesScrollTrack {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+  min-inline-size: 0;
+}
+
+@media (min-width: 768px) {
+  .storesScrollTrack {
+    width: auto;
+    flex: 1;
+    justify-content: flex-end;
+  }
+}
+
+.storeChip {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  height: 36px;
+  padding-inline: var(--space-3);
+  border-radius: 999px;
+  background-color: var(--color-surface);
+  border: 1px solid var(--color-border);
+  color: var(--color-text-secondary);
+  font-size: var(--text-xs);
+  font-weight: 600;
+  white-space: nowrap;
+  cursor: pointer;
+  flex-shrink: 0;
+  transition:
+    background-color 0.2s ease,
+    border-color 0.2s ease,
+    color 0.2s ease;
+}
+
+.storeChip:hover {
+  border-color: var(--color-primary);
+  color: var(--color-text);
+}
+
+.storeChipActive {
+  background-color: var(--color-primary);
+  border-color: var(--color-primary);
+  color: var(--color-text-on-accent, #ffffff);
+}
+
+.storeChipActive:hover {
+  background-color: var(--color-accent-hover);
+  color: var(--color-text-on-accent, #ffffff);
+}
+
+/* Store Logo Emblems inside Chips */
+.amazonIcon {
+  font-size: 13px;
+  line-height: 1;
+}
+
+.noonDot {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  background-color: #feee00;
+  border: 1px solid #d4c600;
+  flex-shrink: 0;
+}
+
+.temuDot {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  background-color: #fb7701;
+  flex-shrink: 0;
+}
+
+.clickbankBadge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 16px;
+  height: 16px;
+  border-radius: 4px;
+  background-color: #1f6a7c;
+  color: #ffffff;
+  font-size: 10px;
+  font-weight: 800;
+  line-height: 1;
+  flex-shrink: 0;
+}
+
+/* 3. Results Count Row */
+.resultsMetaRow {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-3);
+}
+
+.resultsCountText {
+  font-size: var(--text-xs);
+  color: var(--color-text-secondary);
+  margin: 0;
+}

@@ -1,0 +1,135 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 640 520" width="100%" height="100%" fill="none">
+  <!-- Master Canvas Background (#0d1117) -->
+  <rect width="640" height="520" fill="#0d1117" />
+
+  <!-- ===================================================================== -->
+  <!-- 1. FULL HORIZONTAL LOGO (Symbol + Custom Path Wordmark Side-by-Side)  -->
+  <!-- ===================================================================== -->
+  <g id="aqurivo-horizontal-logo" transform="translate(76, 56)">
+    <!-- Symbol (64x64 scaled from 32x32 master grid) -->
+    <g id="horizontal-symbol" transform="scale(2)">
+      <rect width="32" height="32" rx="6" fill="#0d1117" />
+      <!-- Outer Gateway Arch "A" Pillar Structure -->
+      <path
+        fill-rule="evenodd"
+        clip-rule="evenodd"
+        d="M4.5 27.5L12.1 6.4C12.9 4.2 14.3 3.5 16 3.5C17.7 3.5 19.1 4.2 19.9 6.4L27.5 27.5H22.6L17.4 12.1C17.0 10.9 16.5 10.5 16 10.5C15.5 10.5 15.0 10.9 14.6 12.1L9.4 27.5H4.5Z"
+        fill="#F9FAFB"
+      />
+      <!-- Precision Keystone Discovery Ray at Arch Apex -->
+      <path d="M16 3.5L17.6 7.5L16 9.2L14.4 7.5L16 3.5Z" fill="#2DD4BF" />
+      <!-- Central Discovery Diamond & Gateway Portal Crossbar -->
+      <path d="M16 14.5L20.8 20.5L16 26.5L11.2 20.5L16 14.5Z" fill="#2DD4BF" />
+    </g>
+
+    <!-- Custom Vector Path Wordmark "AQURIVO" (Zero <text> elements) -->
+    <g id="horizontal-wordmark" transform="translate(86, 16) scale(1.4)">
+      <!-- A -->
+      <path
+        fill-rule="evenodd"
+        clip-rule="evenodd"
+        d="M0 24L8.2 0H11.8L20 24H16.1L14.3 18.2H5.7L3.9 24H0ZM6.8 14.8H13.2L10 4.6L6.8 14.8Z"
+        fill="#F9FAFB"
+      />
+      <!-- Q (with Teal #2DD4BF Discovery Tail Accent) -->
+      <path
+        fill-rule="evenodd"
+        clip-rule="evenodd"
+        d="M39 0C45.6 0 50 4.8 50 12C50 19.4 45.6 24.3 39 24.3C32.4 24.3 28 19.4 28 12C28 4.8 32.4 0 39 0ZM39 3.5C34.5 3.5 31.8 6.8 31.8 12C31.8 17.2 34.5 20.7 39 20.7C43.5 20.7 46.2 17.2 46.2 12C46.2 6.8 43.5 3.5 39 3.5Z"
+        fill="#F9FAFB"
+      />
+      <path d="M42.2 17.6L50.6 26.0L48.0 28.6L39.6 20.2L42.2 17.6Z" fill="#2DD4BF" />
+      <!-- U -->
+      <path
+        d="M58 0H61.8V14.6C61.8 18.5 64.1 20.7 67.5 20.7C70.9 20.7 73.2 18.5 73.2 14.6V0H77V14.8C77 20.8 73.2 24.3 67.5 24.3C61.8 24.3 58 20.8 58 14.8V0Z"
+        fill="#F9FAFB"
+      />
+      <!-- R -->
+      <path
+        fill-rule="evenodd"
+        clip-rule="evenodd"
+        d="M86 0H96.2C101.4 0 104.6 2.9 104.6 7.4C104.6 10.9 102.6 13.5 99.1 14.4L105.2 24H100.8L95.2 14.8H89.8V24H86V0ZM89.8 3.4V11.5H95.8C98.9 11.5 100.8 9.9 100.8 7.4C100.8 5.0 98.9 3.4 95.8 3.4H89.8Z"
+        fill="#F9FAFB"
+      />
+      <!-- I -->
+      <path d="M113 0H116.8V24H113V0Z" fill="#F9FAFB" />
+      <!-- V -->
+      <path d="M124 0H128L134 19.2L140 0H144L135.8 24H132.2L124 0Z" fill="#F9FAFB" />
+      <!-- O -->
+      <path
+        fill-rule="evenodd"
+        clip-rule="evenodd"
+        d="M162 0C168.6 0 173 4.8 173 12C173 19.4 168.6 24.3 162 24.3C155.4 24.3 151 19.4 151 12C151 4.8 155.4 0 162 0ZM162 3.5C157.5 3.5 154.8 6.8 154.8 12C154.8 17.2 157.5 20.7 162 20.7C166.5 20.7 169.2 17.2 169.2 12C169.2 6.8 166.5 3.5 162 3.5Z"
+        fill="#F9FAFB"
+      />
+    </g>
+  </g>
+
+  <!-- ===================================================================== -->
+  <!-- 2. STACKED VERTICAL LOGO (Symbol Above Custom Path Wordmark)          -->
+  <!-- ===================================================================== -->
+  <g id="aqurivo-stacked-logo" transform="translate(199, 184)">
+    <!-- Centered Symbol (80x80 scaled from 32x32 master grid) -->
+    <g id="stacked-symbol" transform="translate(81, 0) scale(2.5)">
+      <rect width="32" height="32" rx="6" fill="#0d1117" />
+      <path
+        fill-rule="evenodd"
+        clip-rule="evenodd"
+        d="M4.5 27.5L12.1 6.4C12.9 4.2 14.3 3.5 16 3.5C17.7 3.5 19.1 4.2 19.9 6.4L27.5 27.5H22.6L17.4 12.1C17.0 10.9 16.5 10.5 16 10.5C15.5 10.5 15.0 10.9 14.6 12.1L9.4 27.5H4.5Z"
+        fill="#F9FAFB"
+      />
+      <path d="M16 3.5L17.6 7.5L16 9.2L14.4 7.5L16 3.5Z" fill="#2DD4BF" />
+      <path d="M16 14.5L20.8 20.5L16 26.5L11.2 20.5L16 14.5Z" fill="#2DD4BF" />
+    </g>
+
+    <!-- Centered Custom Vector Path Wordmark "AQURIVO" -->
+    <g id="stacked-wordmark" transform="translate(0, 102) scale(1.4)">
+      <path
+        fill-rule="evenodd"
+        clip-rule="evenodd"
+        d="M0 24L8.2 0H11.8L20 24H16.1L14.3 18.2H5.7L3.9 24H0ZM6.8 14.8H13.2L10 4.6L6.8 14.8Z"
+        fill="#F9FAFB"
+      />
+      <path
+        fill-rule="evenodd"
+        clip-rule="evenodd"
+        d="M39 0C45.6 0 50 4.8 50 12C50 19.4 45.6 24.3 39 24.3C32.4 24.3 28 19.4 28 12C28 4.8 32.4 0 39 0ZM39 3.5C34.5 3.5 31.8 6.8 31.8 12C31.8 17.2 34.5 20.7 39 20.7C43.5 20.7 46.2 17.2 46.2 12C46.2 6.8 43.5 3.5 39 3.5Z"
+        fill="#F9FAFB"
+      />
+      <path d="M42.2 17.6L50.6 26.0L48.0 28.6L39.6 20.2L42.2 17.6Z" fill="#2DD4BF" />
+      <path
+        d="M58 0H61.8V14.6C61.8 18.5 64.1 20.7 67.5 20.7C70.9 20.7 73.2 18.5 73.2 14.6V0H77V14.8C77 20.8 73.2 24.3 67.5 24.3C61.8 24.3 58 20.8 58 14.8V0Z"
+        fill="#F9FAFB"
+      />
+      <path
+        fill-rule="evenodd"
+        clip-rule="evenodd"
+        d="M86 0H96.2C101.4 0 104.6 2.9 104.6 7.4C104.6 10.9 102.6 13.5 99.1 14.4L105.2 24H100.8L95.2 14.8H89.8V24H86V0ZM89.8 3.4V11.5H95.8C98.9 11.5 100.8 9.9 100.8 7.4C100.8 5.0 98.9 3.4 95.8 3.4H89.8Z"
+        fill="#F9FAFB"
+      />
+      <path d="M113 0H116.8V24H113V0Z" fill="#F9FAFB" />
+      <path d="M124 0H128L134 19.2L140 0H144L135.8 24H132.2L124 0Z" fill="#F9FAFB" />
+      <path
+        fill-rule="evenodd"
+        clip-rule="evenodd"
+        d="M162 0C168.6 0 173 4.8 173 12C173 19.4 168.6 24.3 162 24.3C155.4 24.3 151 19.4 151 12C151 4.8 155.4 0 162 0ZM162 3.5C157.5 3.5 154.8 6.8 154.8 12C154.8 17.2 157.5 20.7 162 20.7C166.5 20.7 169.2 17.2 169.2 12C169.2 6.8 166.5 3.5 162 3.5Z"
+        fill="#F9FAFB"
+      />
+    </g>
+  </g>
+
+  <!-- ===================================================================== -->
+  <!-- 3. ICON ONLY (32x32 viewBox Nested SVG for Favicon / 16px Use)        -->
+  <!-- ===================================================================== -->
+  <svg id="aqurivo-icon-only" x="304" y="408" width="32" height="32" viewBox="0 0 32 32" fill="none">
+    <rect width="32" height="32" rx="6" fill="#0d1117" />
+    <path
+      fill-rule="evenodd"
+      clip-rule="evenodd"
+      d="M4.5 27.5L12.1 6.4C12.9 4.2 14.3 3.5 16 3.5C17.7 3.5 19.1 4.2 19.9 6.4L27.5 27.5H22.6L17.4 12.1C17.0 10.9 16.5 10.5 16 10.5C15.5 10.5 15.0 10.9 14.6 12.1L9.4 27.5H4.5Z"
+      fill="#F9FAFB"
+    />
+    <path d="M16 3.5L17.6 7.5L16 9.2L14.4 7.5L16 3.5Z" fill="#2DD4BF" />
+    <path d="M16 14.5L20.8 20.5L16 26.5L11.2 20.5L16 14.5Z" fill="#2DD4BF" />
+  </svg>
+</svg>

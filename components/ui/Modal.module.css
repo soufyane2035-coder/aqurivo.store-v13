@@ -1,0 +1,72 @@
+.backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 1000;
+  background-color: var(--color-bg-overlay);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: var(--space-4);
+  animation: soufFadeIn var(--duration-normal) var(--ease-out-quart) both;
+}
+
+.dialog {
+  width: 100%;
+  max-inline-size: 520px;
+  background-color: var(--color-bg-elevated);
+  border: 1px solid var(--color-border-hairline);
+  border-radius: var(--radius-md);
+  box-shadow: var(--shadow-modal);
+  overflow: hidden;
+  animation: soufFadeInUp var(--duration-normal) var(--ease-out-quart) both;
+}
+
+.header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-4);
+  padding-block: var(--space-4);
+  padding-inline: var(--space-6);
+  border-block-end: 1px solid var(--color-border-hairline);
+}
+
+.title {
+  font-size: var(--text-lg);
+  font-weight: 600;
+  color: var(--color-text-primary);
+}
+
+.closeButton {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 40px;
+  height: 40px;
+  background: transparent;
+  border: 1px solid transparent;
+  border-radius: var(--radius-sm);
+  color: var(--color-text-secondary);
+  cursor: pointer;
+}
+
+.closeButton:hover {
+  background-color: var(--color-bg-subtle);
+  color: var(--color-text-primary);
+}
+
+.body {
+  padding: var(--space-6);
+  color: var(--color-text-secondary);
+}
+
+.footer {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: var(--space-3);
+  padding-block: var(--space-4);
+  padding-inline: var(--space-6);
+  background-color: var(--color-bg-subtle);
+  border-block-start: 1px solid var(--color-border-hairline);
+}

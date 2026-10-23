@@ -1,0 +1,366 @@
+.filterBar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 14px;
+}
+
+.filterSection {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+}
+
+.filterSectionLabel {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 12.5px;
+  font-weight: 700;
+  color: var(--color-text-secondary);
+}
+
+.segmentedGroup {
+  display: inline-flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 4px;
+  padding: 4px;
+  border-radius: 10px;
+  background-color: var(--color-bg-canvas);
+  border: 1px solid var(--color-border-strong);
+}
+
+.segmentBtn {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 6px 12px;
+  border-radius: 7px;
+  border: 1px solid transparent;
+  background-color: transparent;
+  color: var(--color-text-secondary);
+  font-family: inherit;
+  font-size: 12.5px;
+  font-weight: 700;
+  cursor: pointer;
+  transition:
+    background-color 0.15s ease,
+    color 0.15s ease,
+    border-color 0.15s ease;
+}
+
+.segmentBtn:hover {
+  color: var(--color-text-primary);
+  background-color: var(--color-bg-subtle);
+}
+
+.segmentBtnActive {
+  background-color: var(--color-accent-subtle);
+  border-color: #2dd4bf;
+  color: var(--color-accent-primary);
+}
+
+.segmentBtnActiveGold {
+  background-color: rgba(245, 158, 11, 0.15);
+  border-color: #f59e0b;
+  color: #f59e0b;
+}
+
+.statsRow {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(190px, 1fr));
+  gap: 12px;
+}
+
+.statBox {
+  background-color: var(--color-bg-elevated);
+  border: 1px solid var(--color-border-strong);
+  border-radius: 12px;
+  padding: 14px 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.statLabel {
+  font-size: 12px;
+  color: var(--color-text-secondary);
+  font-weight: 600;
+}
+
+.statValue {
+  font-size: 22px;
+  font-weight: 800;
+  color: var(--color-text-primary);
+  font-variant-numeric: tabular-nums;
+}
+
+.statValueTeal {
+  color: #2dd4bf;
+}
+
+.statValueGold {
+  color: #f59e0b;
+}
+
+.productCell {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  max-inline-size: 260px;
+}
+
+.productTitleRow {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px;
+}
+
+.productName {
+  font-weight: 700;
+  color: var(--color-text-primary);
+}
+
+.warningBadge {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 3px 8px;
+  border-radius: 6px;
+  background-color: rgba(245, 158, 11, 0.16);
+  border: 1px solid #f59e0b;
+  color: #f59e0b;
+  font-size: 11px;
+  font-weight: 700;
+  line-height: 1.3;
+}
+
+.productLink {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 12px;
+  font-weight: 600;
+  color: #2dd4bf;
+  text-decoration: none;
+  align-self: flex-start;
+}
+
+.productLink:hover {
+  text-decoration: underline;
+}
+
+.typeBadgeProduct {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 3px 8px;
+  border-radius: 6px;
+  background-color: rgba(45, 212, 191, 0.12);
+  border: 1px solid rgba(45, 212, 191, 0.35);
+  color: #2dd4bf;
+  font-size: 11.5px;
+  font-weight: 700;
+}
+
+.typeBadgeOrder {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 3px 8px;
+  border-radius: 6px;
+  background-color: rgba(245, 158, 11, 0.14);
+  border: 1px solid rgba(245, 158, 11, 0.4);
+  color: #f59e0b;
+  font-size: 11.5px;
+  font-weight: 700;
+}
+
+.reasonText {
+  margin-block-start: 4px;
+  font-size: 12.5px;
+  font-weight: 600;
+  color: var(--color-text-primary);
+}
+
+.orderRefLine {
+  margin-block-start: 3px;
+  font-size: 11.5px;
+  color: #f59e0b;
+  font-family: monospace;
+}
+
+.messageText {
+  margin: 0;
+  font-size: 13px;
+  line-height: 1.55;
+  color: var(--color-text-secondary);
+  max-inline-size: 340px;
+  white-space: pre-wrap;
+  word-break: break-word;
+}
+
+.emailCell {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.emailAddress {
+  font-size: 12.5px;
+  font-weight: 600;
+  color: var(--color-text-primary);
+  direction: ltr;
+  text-align: start;
+}
+
+.copyBtn {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 5px 10px;
+  border-radius: 6px;
+  border: 1px solid rgba(45, 212, 191, 0.3);
+  background-color: rgba(45, 212, 191, 0.08);
+  color: #2dd4bf;
+  font-family: inherit;
+  font-size: 11.5px;
+  font-weight: 600;
+  cursor: pointer;
+  align-self: flex-start;
+  transition:
+    background-color 0.15s ease,
+    color 0.15s ease;
+}
+
+.copyBtn:hover {
+  background-color: #2dd4bf;
+  color: #0d1117;
+}
+
+.statusCell {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.statusBadgeNew {
+  display: inline-flex;
+  align-items: center;
+  padding: 3px 9px;
+  border-radius: 6px;
+  background-color: rgba(245, 158, 11, 0.16);
+  border: 1px solid #f59e0b;
+  color: #f59e0b;
+  font-size: 11.5px;
+  font-weight: 700;
+  align-self: flex-start;
+}
+
+.statusBadgeProgress {
+  display: inline-flex;
+  align-items: center;
+  padding: 3px 9px;
+  border-radius: 6px;
+  background-color: rgba(45, 212, 191, 0.14);
+  border: 1px solid #2dd4bf;
+  color: #2dd4bf;
+  font-size: 11.5px;
+  font-weight: 700;
+  align-self: flex-start;
+}
+
+.statusBadgeResolved {
+  display: inline-flex;
+  align-items: center;
+  padding: 3px 9px;
+  border-radius: 6px;
+  background-color: var(--color-bg-subtle);
+  border: 1px solid var(--color-border-strong);
+  color: var(--color-text-secondary);
+  font-size: 11.5px;
+  font-weight: 700;
+  align-self: flex-start;
+}
+
+.actionsCell {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 6px;
+}
+
+.statusSwitchPills {
+  display: inline-flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  padding: 3px;
+  border-radius: 8px;
+  background-color: var(--color-bg-canvas);
+  border: 1px solid var(--color-border-strong);
+}
+
+.statusPillBtn {
+  padding: 4px 8px;
+  border-radius: 6px;
+  border: 1px solid transparent;
+  background-color: transparent;
+  color: var(--color-text-secondary);
+  font-family: inherit;
+  font-size: 11px;
+  font-weight: 700;
+  cursor: pointer;
+  transition:
+    background-color 0.15s ease,
+    color 0.15s ease,
+    border-color 0.15s ease;
+}
+
+.statusPillBtn:hover:not(:disabled) {
+  color: var(--color-text-primary);
+  background-color: var(--color-bg-subtle);
+}
+
+.statusPillActiveTeal {
+  background-color: var(--color-accent-subtle);
+  border-color: #2dd4bf;
+  color: var(--color-accent-primary);
+}
+
+.statusPillActiveGold {
+  background-color: rgba(245, 158, 11, 0.15);
+  border-color: #f59e0b;
+  color: #f59e0b;
+}
+
+.statusBtn {
+  padding: 5px 10px;
+  border-radius: 7px;
+  border: 1px solid var(--color-border-strong);
+  background-color: var(--color-bg-canvas);
+  color: var(--color-text-primary);
+  font-family: inherit;
+  font-size: 11.5px;
+  font-weight: 600;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  transition:
+    border-color 0.15s ease,
+    color 0.15s ease;
+}
+
+.statusBtn:hover:not(:disabled) {
+  border-color: #2dd4bf;
+  color: #2dd4bf;
+}
+
+.statusBtn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}

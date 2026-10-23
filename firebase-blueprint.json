@@ -1,0 +1,240 @@
+{
+  "entities": {
+    "Product": {
+      "title": "Product",
+      "description": "Curated affiliate product with bilingual editorial content, pricing policy, and partner store link.",
+      "type": "object",
+      "properties": {
+        "slug": {
+          "type": "string",
+          "minLength": 2,
+          "maxLength": 120,
+          "pattern": "^[a-z0-9-]+$"
+        },
+        "titleEn": { "type": "string", "minLength": 2, "maxLength": 180 },
+        "titleAr": { "type": "string", "minLength": 2, "maxLength": 180 },
+        "priceCurrency": { "type": "string", "minLength": 3, "maxLength": 3 },
+        "priceDisplayPolicy": {
+          "type": "string",
+          "enum": ["show_with_timestamp", "hide_price_check_store"]
+        },
+        "affiliateUrl": { "type": "string", "minLength": 10, "maxLength": 1024 },
+        "sourceId": { "type": "string", "minLength": 1, "maxLength": 128 },
+        "categoryId": { "type": "string", "minLength": 1, "maxLength": 128 },
+        "status": {
+          "type": "string",
+          "enum": ["published", "draft", "archived"]
+        }
+      },
+      "required": [
+        "slug",
+        "titleEn",
+        "titleAr",
+        "priceCurrency",
+        "priceDisplayPolicy",
+        "affiliateUrl",
+        "sourceId",
+        "categoryId",
+        "status"
+      ]
+    },
+    "Category": {
+      "title": "Category",
+      "description": "Product and editorial guide category with bilingual titles.",
+      "type": "object",
+      "properties": {
+        "slug": {
+          "type": "string",
+          "minLength": 2,
+          "maxLength": 80,
+          "pattern": "^[a-z0-9-]+$"
+        },
+        "isActive": { "type": "boolean" },
+        "sortOrder": { "type": "number" }
+      },
+      "required": ["slug", "isActive", "sortOrder"]
+    },
+    "PartnerSource": {
+      "title": "PartnerSource",
+      "description": "Affiliate partner marketplace (Amazon, Noon, Temu, ClickBank, or custom).",
+      "type": "object",
+      "properties": {
+        "slug": {
+          "type": "string",
+          "minLength": 2,
+          "maxLength": 80,
+          "pattern": "^[a-z0-9-]+$"
+        },
+        "websiteUrl": { "type": "string", "minLength": 8, "maxLength": 512 },
+        "defaultPricePolicy": {
+          "type": "string",
+          "enum": ["show_with_timestamp", "hide_price_check_store"]
+        },
+        "isActive": { "type": "boolean" }
+      },
+      "required": ["slug", "websiteUrl", "defaultPricePolicy", "isActive"]
+    },
+    "Article": {
+      "title": "Article",
+      "description": "Editorial buying guide or product comparison article.",
+      "type": "object",
+      "properties": {
+        "slug": {
+          "type": "string",
+          "minLength": 2,
+          "maxLength": 140,
+          "pattern": "^[a-z0-9-]+$"
+        },
+        "status": {
+          "type": "string",
+          "enum": ["published", "draft"]
+        }
+      },
+      "required": ["slug", "status"]
+    },
+    "ContactMessage": {
+      "title": "ContactMessage",
+      "description": "Visitor message submitted via the Contact Us form.",
+      "type": "object",
+      "properties": {
+        "senderName": { "type": "string", "minLength": 2, "maxLength": 100 },
+        "senderEmail": { "type": "string", "minLength": 5, "maxLength": 160 },
+        "subject": { "type": "string", "minLength": 2, "maxLength": 160 },
+        "message": { "type": "string", "minLength": 10, "maxLength": 3000 },
+        "isRead": { "type": "boolean" }
+      },
+      "required": ["senderName", "senderEmail", "subject", "message", "isRead"]
+    },
+    "ClickEvent": {
+      "title": "ClickEvent",
+      "description": "Privacy-preserving outbound affiliate click record.",
+      "type": "object",
+      "properties": {
+        "productId": { "type": "string", "minLength": 1, "maxLength": 128 },
+        "sourceId": { "type": "string", "minLength": 1, "maxLength": 128 },
+        "ipDailyHash": { "type": "string", "minLength": 16, "maxLength": 128 },
+        "deviceType": { "type": "string", "enum": ["mobile", "tablet", "desktop"] },
+        "locale": { "type": "string", "enum": ["en", "ar"] }
+      },
+      "required": ["productId", "sourceId", "ipDailyHash", "deviceType", "locale"]
+    },
+    "UserProfile": {
+      "title": "UserProfile",
+      "description": "Registered user profile and synced saved product IDs.",
+      "type": "object",
+      "properties": {
+        "uid": { "type": "string", "minLength": 1, "maxLength": 128 },
+        "email": { "type": "string", "minLength": 5, "maxLength": 160 },
+        "role": { "type": "string", "enum": ["visitor", "admin"] }
+      },
+      "required": ["uid", "email", "role"]
+    },
+    "SiteSettings": {
+      "title": "SiteSettings",
+      "description": "Global storefront settings and official contact channels.",
+      "type": "object",
+      "properties": {
+        "contactEmail": { "type": "string", "minLength": 5, "maxLength": 160 },
+        "contactPhoneE164": { "type": "string", "minLength": 8, "maxLength": 30 }
+      },
+      "required": ["contactEmail", "contactPhoneE164"]
+    },
+    "Testimonial": {
+      "title": "Testimonial",
+      "description": "Visitor testimonial submitted from the storefront and moderated by admin.",
+      "type": "object",
+      "properties": {
+        "name": { "type": "string", "minLength": 1, "maxLength": 50 },
+        "rating": { "type": "number" },
+        "text": { "type": "string", "minLength": 1, "maxLength": 300 },
+        "createdAt": { "type": "string", "format": "date-time" },
+        "approved": { "type": "boolean" },
+        "locale": { "type": "string", "enum": ["ar", "en"] }
+      },
+      "required": ["name", "rating", "text", "createdAt", "approved", "locale"]
+    },
+    "Report": {
+      "title": "Report",
+      "description": "Issue or order assistance report submitted via API and managed by admin.",
+      "type": "object",
+      "properties": {
+        "type": { "type": "string", "enum": ["product_issue", "order_issue"] },
+        "reason": {
+          "type": "string",
+          "enum": [
+            "broken_link",
+            "price_mismatch",
+            "wrong_info",
+            "unavailable",
+            "other",
+            "order_issue"
+          ]
+        },
+        "productSlug": { "type": "string", "maxLength": 160 },
+        "productName": { "type": "string", "maxLength": 220 },
+        "email": { "type": "string", "minLength": 5, "maxLength": 160 },
+        "message": { "type": "string", "minLength": 10, "maxLength": 1000 },
+        "orderRef": { "type": "string", "maxLength": 120 },
+        "locale": { "type": "string", "enum": ["ar", "en"] },
+        "status": {
+          "type": "string",
+          "enum": ["new", "in_progress", "resolved"]
+        },
+        "createdAt": { "type": "string", "format": "date-time" },
+        "ipHash": { "type": "string", "minLength": 16, "maxLength": 64 }
+      },
+      "required": [
+        "type",
+        "reason",
+        "email",
+        "message",
+        "locale",
+        "status",
+        "createdAt",
+        "ipHash"
+      ]
+    }
+  },
+  "firestore": {
+    "/products/{productId}": {
+      "schema": { "$ref": "#/entities/Product" },
+      "description": "Curated affiliate products collection."
+    },
+    "/categories/{categoryId}": {
+      "schema": { "$ref": "#/entities/Category" },
+      "description": "Product categories collection."
+    },
+    "/sources/{sourceId}": {
+      "schema": { "$ref": "#/entities/PartnerSource" },
+      "description": "Partner affiliate marketplaces collection."
+    },
+    "/articles/{articleId}": {
+      "schema": { "$ref": "#/entities/Article" },
+      "description": "Editorial buying guides collection."
+    },
+    "/messages/{messageId}": {
+      "schema": { "$ref": "#/entities/ContactMessage" },
+      "description": "Inbound contact messages (Admin-only via Server SDK)."
+    },
+    "/clicks/{clickId}": {
+      "schema": { "$ref": "#/entities/ClickEvent" },
+      "description": "Outbound click tracking logs (Server-only via Admin SDK)."
+    },
+    "/users/{userId}": {
+      "schema": { "$ref": "#/entities/UserProfile" },
+      "description": "User accounts and saved items."
+    },
+    "/settings/{settingId}": {
+      "schema": { "$ref": "#/entities/SiteSettings" },
+      "description": "Storefront configuration documents."
+    },
+    "/testimonials/{testimonialId}": {
+      "schema": { "$ref": "#/entities/Testimonial" },
+      "description": "Visitor testimonials collection with admin moderation."
+    },
+    "/reports/{reportId}": {
+      "schema": { "$ref": "#/entities/Report" },
+      "description": "Issue and order assistance reports created via API only and managed by admin."
+    }
+  }
+}

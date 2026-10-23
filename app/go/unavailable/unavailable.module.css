@@ -1,0 +1,78 @@
+.pageShell {
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+}
+
+.main {
+  flex: 1;
+  padding-block-start: var(--space-12);
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-12);
+}
+
+.noticeBox {
+  background-color: var(--color-bg-elevated);
+  border: 1px solid var(--color-border-hairline);
+  border-radius: var(--radius-md);
+  padding: var(--space-8);
+  max-inline-size: 680px;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+}
+
+.title {
+  font-size: var(--text-2xl);
+  color: var(--color-text-primary);
+}
+
+.description {
+  font-size: var(--text-base);
+  color: var(--color-text-secondary);
+  line-height: var(--leading-relaxed);
+}
+
+.actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-3);
+  margin-block-start: var(--space-2);
+}
+
+.primaryBtn {
+  display: inline-flex;
+  align-items: center;
+  min-block-size: 44px;
+  padding-inline: var(--space-5);
+  background-color: var(--color-accent-primary);
+  color: var(--color-text-on-accent);
+  border-radius: var(--radius-sm);
+  font-size: var(--text-sm);
+  font-weight: 600;
+}
+
+.secondaryBtn {
+  display: inline-flex;
+  align-items: center;
+  min-block-size: 44px;
+  padding-inline: var(--space-5);
+  border: 1px solid var(--color-border-strong);
+  border-radius: var(--radius-sm);
+  font-size: var(--text-sm);
+  font-weight: 600;
+  color: var(--color-text-primary);
+}
+
+.alternativesSection {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-6);
+}
+
+.grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(290px, 1fr));
+  gap: var(--space-6);
+}

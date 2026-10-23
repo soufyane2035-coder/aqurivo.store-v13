@@ -1,0 +1,654 @@
+/* ==========================================================================
+   Custom SmartToolsEmblem Styles (Matches ReportCareEmblem)
+   ========================================================================== */
+.emblemWrap {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  position: relative;
+}
+
+.emblemSm {
+  width: 22px;
+  height: 22px;
+}
+
+.emblemMd {
+  width: 42px;
+  height: 42px;
+}
+
+.emblemLg {
+  width: 60px;
+  height: 60px;
+}
+
+.emblemSvg {
+  display: block;
+  transition: transform 0.25s ease;
+}
+
+/* ==========================================================================
+   Compact Single-Line Trigger Button (Matches "أبلغ عن مشكلة" Button)
+   ========================================================================== */
+.triggerButton {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 8px 14px;
+  background-color: var(--color-bg-elevated);
+  color: var(--color-text-primary);
+  border: 1px solid var(--color-accent-border);
+  border-radius: 10px;
+  font-family: inherit;
+  font-size: 13px;
+  font-weight: 700;
+  line-height: 1.4;
+  text-decoration: none;
+  white-space: nowrap;
+  cursor: pointer;
+  box-shadow: var(--shadow-card);
+  transition:
+    color 0.18s ease,
+    border-color 0.18s ease,
+    background-color 0.18s ease,
+    transform 0.18s ease,
+    box-shadow 0.18s ease;
+}
+
+.triggerButton:hover {
+  color: var(--color-accent-primary);
+  border-color: #2dd4bf;
+  background-color: var(--color-accent-subtle);
+  transform: translateY(-1px);
+  box-shadow: var(--shadow-card-hover);
+}
+
+.triggerButtonActive {
+  color: var(--color-text-primary);
+  border-color: #2dd4bf;
+  background-color: var(--color-accent-subtle);
+}
+
+.triggerButton:hover .emblemSvg {
+  transform: scale(1.08) rotate(6deg);
+}
+
+.triggerButton:active {
+  transform: scale(0.97);
+}
+
+.triggerButton:focus-visible {
+  outline: 2px solid #2dd4bf;
+  outline-offset: 2px;
+}
+
+/* Inline expandable tools list, matching the product sharing panel. */
+@keyframes panelReveal {
+  from {
+    opacity: 0.7;
+    transform: translateY(-4px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.sheetModal {
+  width: 100%;
+  max-width: 100%;
+  box-sizing: border-box;
+  margin-top: 4px;
+  padding: 12px 14px;
+  border: 1px solid rgba(45, 212, 191, 0.35);
+  border-radius: 12px;
+  background-color: var(--bg-card);
+  color: var(--color-text-primary);
+  box-shadow: var(--shadow-card);
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  order: 10;
+  flex: 0 0 100%;
+  text-align: start;
+  animation: panelReveal 0.18s ease-out;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .sheetModal {
+    animation: none;
+  }
+}
+
+/* Sheet Header */
+.sheetHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding-block-end: 12px;
+  border-block-end: 1px solid var(--color-border-hairline);
+}
+
+.sheetHeaderStart {
+  display: flex;
+  align-items: center;
+  gap: 11px;
+  min-inline-size: 0;
+}
+
+.sheetHeaderTitles {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  min-inline-size: 0;
+}
+
+.sheetTitle {
+  margin: 0;
+  font-size: 15.5px;
+  font-weight: 800;
+  color: var(--color-text-primary);
+  line-height: 1.25;
+}
+
+.sheetPriceBadge {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  align-self: flex-start;
+  padding: 2px 8px;
+  border-radius: 6px;
+  background-color: var(--color-accent-subtle);
+  border: 1px solid var(--color-accent-border);
+  color: var(--color-accent-primary);
+  font-size: 11.5px;
+  font-weight: 700;
+}
+
+.sheetCloseBtn {
+  width: 32px;
+  height: 32px;
+  border-radius: 9px;
+  border: 1px solid var(--color-border-strong);
+  background-color: var(--color-bg-canvas);
+  color: var(--color-text-secondary);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  flex-shrink: 0;
+  transition:
+    color 0.15s ease,
+    border-color 0.15s ease,
+    background-color 0.15s ease;
+}
+
+.sheetCloseBtn:hover {
+  color: var(--color-text-primary);
+  border-color: #2dd4bf;
+  background-color: var(--color-bg-subtle);
+}
+
+/* Compact 1-Line Tool Rows List */
+.sheetToolsList {
+  display: flex;
+  flex-direction: column;
+  gap: 9px;
+}
+
+.sheetToolRow {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 11px 13px;
+  border-radius: 14px;
+  background-color: var(--color-bg-canvas);
+  border: 1.5px solid var(--color-border-strong);
+  color: var(--color-text-primary);
+  text-decoration: none;
+  transition:
+    border-color 0.16s ease,
+    background-color 0.16s ease,
+    transform 0.16s ease,
+    box-shadow 0.16s ease;
+}
+
+.sheetToolRow:hover {
+  border-color: #2dd4bf;
+  background-color: var(--color-accent-subtle);
+  transform: translateY(-1px);
+  box-shadow: var(--shadow-card-hover);
+}
+
+.sheetToolRowGold:hover {
+  border-color: #f59e0b;
+  background-color: rgba(245, 158, 11, 0.1);
+}
+
+.sheetToolRow:active {
+  transform: scale(0.985);
+}
+
+.sheetToolLogoWrap {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.sheetToolInfo {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  flex: 1;
+  min-inline-size: 0;
+}
+
+.sheetToolName {
+  font-size: 14px;
+  font-weight: 800;
+  color: var(--color-text-primary);
+  line-height: 1.3;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.sheetToolSub {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--color-text-secondary);
+  line-height: 1.35;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.sheetToolArrow {
+  width: 30px;
+  height: 30px;
+  border-radius: 9px;
+  background-color: var(--color-bg-elevated);
+  border: 1px solid var(--color-border-hairline);
+  color: var(--color-accent-primary);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  transition:
+    background-color 0.15s ease,
+    color 0.15s ease,
+    border-color 0.15s ease;
+}
+
+.sheetToolRow:hover .sheetToolArrow {
+  background-color: #2dd4bf;
+  border-color: #2dd4bf;
+  color: #081c17;
+}
+
+.sheetToolRowGold .sheetToolArrow {
+  color: #d97706;
+}
+
+[data-theme='dark'] .sheetToolRowGold .sheetToolArrow {
+  color: #f59e0b;
+}
+
+.sheetToolRowGold:hover .sheetToolArrow {
+  background-color: #f59e0b;
+  border-color: #f59e0b;
+  color: #0d1117;
+}
+
+/* Sheet Footer */
+.sheetFooter {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding-block-start: 6px;
+  border-block-start: 1px solid var(--color-border-hairline);
+}
+
+.sheetAllToolsLink {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 12px;
+  border-radius: 8px;
+  font-size: 12.5px;
+  font-weight: 700;
+  color: var(--color-text-secondary);
+  text-decoration: none;
+  transition:
+    color 0.15s ease,
+    background-color 0.15s ease;
+}
+
+.sheetAllToolsLink:hover {
+  color: var(--color-accent-primary);
+  background-color: var(--color-bg-subtle);
+}
+
+/* ==========================================================================
+   SmartToolChain (Tool Detail Page Contextual Next-Step Bar + Affinity Grid)
+   ========================================================================== */
+.chainQuickBar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 12px 16px;
+  border-radius: 14px;
+  background-color: var(--color-bg-elevated);
+  border: 1.5px solid var(--color-accent-border);
+  box-shadow: var(--shadow-card);
+}
+
+.chainBarHeader {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+}
+
+.chainBarTitle {
+  font-size: 13.5px;
+  font-weight: 800;
+  color: var(--color-text-primary);
+}
+
+.chainPriceCarryBadge {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 3px 9px;
+  border-radius: 6px;
+  background-color: rgba(245, 158, 11, 0.15);
+  border: 1px solid rgba(245, 158, 11, 0.4);
+  color: #d97706;
+  font-size: 11.5px;
+  font-weight: 700;
+}
+
+[data-theme='dark'] .chainPriceCarryBadge {
+  color: #f59e0b;
+}
+
+.chainPillsRow {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+}
+
+.chainPrimaryPill {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  padding: 8px 14px;
+  border-radius: 10px;
+  background-color: #2dd4bf;
+  color: #081c17;
+  font-size: 13px;
+  font-weight: 800;
+  text-decoration: none;
+  box-shadow: 0 4px 14px rgba(45, 212, 191, 0.24);
+  transition:
+    background-color 0.16s ease,
+    transform 0.16s ease;
+}
+
+.chainPrimaryPill:hover {
+  background-color: #42d4b5;
+  transform: translateY(-1px);
+}
+
+.chainSecondaryPill {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 7px 12px;
+  border-radius: 10px;
+  background-color: var(--color-bg-canvas);
+  border: 1px solid var(--color-border-strong);
+  color: var(--color-text-primary);
+  font-size: 12.5px;
+  font-weight: 700;
+  text-decoration: none;
+  transition:
+    border-color 0.15s ease,
+    color 0.15s ease,
+    background-color 0.15s ease;
+}
+
+.chainSecondaryPill:hover {
+  border-color: #2dd4bf;
+  color: var(--color-accent-primary);
+  background-color: var(--color-accent-subtle);
+}
+
+.chainProductBackPill {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 7px 12px;
+  border-radius: 10px;
+  background-color: rgba(245, 158, 11, 0.12);
+  border: 1px solid rgba(245, 158, 11, 0.38);
+  color: #d97706;
+  font-size: 12px;
+  font-weight: 700;
+  text-decoration: none;
+  transition: transform 0.15s ease;
+}
+
+[data-theme='dark'] .chainProductBackPill {
+  color: #f59e0b;
+}
+
+.chainProductBackPill:hover {
+  transform: translateY(-1px);
+}
+
+/* Bottom Smart Affinity Section */
+.chainSection {
+  margin-block-start: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.chainSectionHeader {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+.chainSectionTitleWrap {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+
+.chainSectionTitle {
+  margin: 0;
+  font-size: 1.15rem;
+  font-weight: 800;
+  color: var(--color-text-primary);
+}
+
+.chainSectionSub {
+  margin: 0;
+  font-size: 13px;
+  color: var(--color-text-secondary);
+}
+
+.chainAllToolsBtn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 7px 13px;
+  border-radius: 9px;
+  background-color: var(--color-bg-elevated);
+  border: 1px solid var(--color-border-strong);
+  color: var(--color-text-primary);
+  font-size: 12.5px;
+  font-weight: 700;
+  text-decoration: none;
+  transition:
+    border-color 0.15s ease,
+    color 0.15s ease;
+}
+
+.chainAllToolsBtn:hover {
+  border-color: var(--color-accent-primary);
+  color: var(--color-accent-primary);
+}
+
+.chainGrid {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 12px;
+}
+
+@media (min-width: 720px) {
+  .chainGrid {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+}
+
+.chainCard {
+  background-color: var(--color-bg-elevated);
+  border: 1.5px solid var(--color-border-strong);
+  border-radius: 14px;
+  padding: 16px;
+  box-shadow: var(--shadow-card);
+  text-decoration: none;
+  color: var(--color-text-primary);
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  gap: 12px;
+  transition:
+    border-color 0.18s ease,
+    box-shadow 0.18s ease,
+    transform 0.18s ease;
+}
+
+.chainCard:hover {
+  border-color: #2dd4bf;
+  box-shadow: var(--shadow-card-hover);
+  transform: translateY(-2px);
+}
+
+.chainCardGold:hover {
+  border-color: #f59e0b;
+}
+
+.chainCardTop {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.chainCardBadgesRow {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 6px;
+}
+
+.chainStepBadgeTeal {
+  font-size: 11px;
+  font-weight: 700;
+  padding: 3px 8px;
+  border-radius: 6px;
+  background-color: var(--color-accent-subtle);
+  border: 1px solid var(--color-accent-border);
+  color: var(--color-accent-primary);
+}
+
+.chainStepBadgeGold {
+  font-size: 11px;
+  font-weight: 700;
+  padding: 3px 8px;
+  border-radius: 6px;
+  background-color: rgba(245, 158, 11, 0.15);
+  border: 1px solid rgba(245, 158, 11, 0.38);
+  color: #d97706;
+}
+
+[data-theme='dark'] .chainStepBadgeGold {
+  color: #f59e0b;
+}
+
+.chainUnvisitedTag {
+  font-size: 10.5px;
+  font-weight: 700;
+  padding: 2px 7px;
+  border-radius: 5px;
+  background-color: var(--color-bg-subtle);
+  color: var(--color-text-secondary);
+}
+
+.chainCardTitleRow {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.chainCardTitle {
+  font-size: 14.5px;
+  font-weight: 800;
+  color: var(--color-text-primary);
+  line-height: 1.35;
+}
+
+.chainCardReason {
+  margin: 0;
+  font-size: 12.5px;
+  color: var(--color-text-secondary);
+  line-height: 1.5;
+}
+
+.chainCardFooter {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  padding-block-start: 10px;
+  border-block-start: 1px solid var(--color-border-hairline);
+}
+
+.chainCardCta {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 12.5px;
+  font-weight: 800;
+  color: var(--color-accent-primary);
+}
+
+.chainCardCtaGold {
+  color: #d97706;
+}
+
+[data-theme='dark'] .chainCardCtaGold {
+  color: #f59e0b;
+}
+
+.chainCarryNote {
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--color-text-muted);
+}

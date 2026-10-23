@@ -1,0 +1,76 @@
+.illustrationWrapper {
+  width: 100%;
+  border-radius: var(--radius-sm);
+  overflow: hidden;
+  border: 1px solid var(--color-border-hairline);
+  background-color: var(--color-bg-subtle);
+  position: relative;
+  transition: transform var(--duration-fast) ease, border-color var(--duration-fast) ease;
+}
+
+.illustrationWrapper:hover {
+  border-color: var(--color-border-strong);
+}
+
+.visualCanvas {
+  width: 100%;
+  aspect-ratio: 520 / 220;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.svgGraphic {
+  width: 100%;
+  height: 100%;
+  display: block;
+}
+
+.svgTextTitle {
+  font-family: var(--font-heading), system-ui, sans-serif;
+  font-size: 13px;
+  font-weight: 700;
+  fill: #f3f4f6;
+  letter-spacing: -0.01em;
+}
+
+.svgTextSub {
+  font-family: var(--font-sans), system-ui, sans-serif;
+  font-size: 11px;
+  font-weight: 500;
+  fill: #9ca3af;
+}
+
+.svgPillText {
+  font-family: var(--font-heading), system-ui, sans-serif;
+  font-size: 11px;
+  font-weight: 700;
+  fill: #ffffff;
+  letter-spacing: 0.02em;
+}
+
+/* Theme-specific styles */
+.theme_emerald {
+  border-color: rgba(16, 185, 129, 0.25);
+  box-shadow: inset 0 0 20px rgba(16, 185, 129, 0.05);
+}
+
+.theme_terracotta {
+  border-color: rgba(245, 158, 11, 0.25);
+  box-shadow: inset 0 0 20px rgba(245, 158, 11, 0.05);
+}
+
+.theme_teal {
+  border-color: rgba(56, 189, 248, 0.25);
+  box-shadow: inset 0 0 20px rgba(56, 189, 248, 0.05);
+}
+
+.theme_olive {
+  border-color: rgba(132, 204, 22, 0.25);
+  box-shadow: inset 0 0 20px rgba(132, 204, 22, 0.05);
+}
+
+.theme_clay {
+  border-color: rgba(244, 63, 94, 0.25);
+  box-shadow: inset 0 0 20px rgba(244, 63, 94, 0.05);
+}

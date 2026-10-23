@@ -1,0 +1,739 @@
+.pageShell {
+  min-height: 100vh;
+  width: 100%;
+  max-width: 100vw;
+  overflow-x: hidden;
+  display: flex;
+  flex-direction: column;
+  background-color: var(--color-bg-canvas);
+  color: var(--color-text-primary);
+  transition: background-color 0.2s ease, color 0.2s ease;
+  box-sizing: border-box;
+}
+
+.pageShell *,
+.pageShell *::before,
+.pageShell *::after {
+  box-sizing: border-box;
+}
+
+.main {
+  flex: 1;
+  width: 100%;
+  max-width: var(--container-max-width, 1180px);
+  margin-inline: auto;
+  padding: 20px 16px 72px;
+  display: flex;
+  flex-direction: column;
+}
+
+@media (min-width: 768px) {
+  .main {
+    padding: 44px 32px 104px;
+  }
+}
+
+/* =========================================================
+   1. ARCHITECTURAL MASTHEAD (COMPACT & CLEAN ON MOBILE)
+   ========================================================= */
+.masthead {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding-block-end: 18px;
+  border-block-end: 1px solid var(--color-border-strong);
+}
+
+@media (min-width: 768px) {
+  .masthead {
+    gap: 14px;
+    padding-block-end: 26px;
+  }
+}
+
+.mastheadTopRow {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.kicker {
+  font-family: var(--font-mono, monospace);
+  font-size: 0.68rem;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--color-accent-primary);
+  font-variant-numeric: tabular-nums;
+}
+
+.indexCount {
+  font-family: var(--font-mono, monospace);
+  font-size: 0.7rem;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  color: var(--color-text-muted);
+  font-variant-numeric: tabular-nums;
+}
+
+.mastheadBody {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: 8px;
+  align-items: end;
+}
+
+@media (min-width: 900px) {
+  .mastheadBody {
+    grid-template-columns: minmax(0, 1.3fr) minmax(0, 1fr);
+    gap: 36px;
+  }
+}
+
+.title {
+  font-size: clamp(1.45rem, 4.5vw, 2.65rem);
+  font-weight: 900;
+  color: var(--color-text-primary);
+  margin: 0;
+  line-height: 1.2;
+  letter-spacing: -0.02em;
+}
+
+.subtitle {
+  font-size: 0.88rem;
+  color: var(--color-text-secondary);
+  margin: 0;
+  line-height: 1.6;
+}
+
+@media (min-width: 768px) {
+  .subtitle {
+    font-size: 0.96rem;
+  }
+}
+
+/* =========================================================
+   2. MINIMALIST COMMAND BAR (TABS + LINE SEARCH)
+   ========================================================= */
+.commandBar {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding-block: 12px;
+  border-block-end: 1px solid var(--color-border-hairline);
+}
+
+@media (min-width: 860px) {
+  .commandBar {
+    flex-direction: row;
+    align-items: center;
+    justify-content: space-between;
+    gap: 24px;
+    padding-block: 14px;
+  }
+}
+
+.chapterTabs {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 10px 16px;
+}
+
+@media (min-width: 640px) {
+  .chapterTabs {
+    gap: 22px;
+  }
+}
+
+.chapterTabBtn {
+  position: relative;
+  background: transparent;
+  border: none;
+  padding: 4px 0;
+  font-family: inherit;
+  font-size: 0.82rem;
+  font-weight: 600;
+  color: var(--color-text-muted);
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  transition: color 0.18s ease;
+}
+
+@media (min-width: 640px) {
+  .chapterTabBtn {
+    font-size: 0.88rem;
+  }
+}
+
+.chapterTabBtn:hover {
+  color: var(--color-text-primary);
+}
+
+.chapterTabBtnActive {
+  color: var(--color-text-primary);
+  font-weight: 800;
+}
+
+.chapterTabBtnActive::after {
+  content: '';
+  position: absolute;
+  inset-inline: 0;
+  bottom: -2px;
+  height: 2px;
+  background-color: var(--color-accent-primary);
+}
+
+.tabIndexNum {
+  font-family: var(--font-mono, monospace);
+  font-size: 0.68rem;
+  font-weight: 700;
+  color: var(--color-accent-primary);
+  font-variant-numeric: tabular-nums;
+}
+
+.searchCommandWrap {
+  position: relative;
+  display: flex;
+  align-items: center;
+  width: 100%;
+  border-block-end: 1px solid var(--color-border-strong);
+  transition: border-color 0.2s ease;
+}
+
+@media (min-width: 860px) {
+  .searchCommandWrap {
+    width: 260px;
+  }
+}
+
+.searchCommandWrap:focus-within {
+  border-color: var(--color-accent-primary);
+}
+
+.searchIcon {
+  color: var(--color-text-muted);
+  flex-shrink: 0;
+  pointer-events: none;
+}
+
+.searchInput {
+  width: 100%;
+  min-width: 0;
+  min-height: 34px;
+  padding-block: 4px;
+  padding-inline-start: 8px;
+  padding-inline-end: 26px;
+  background: transparent;
+  border: none;
+  color: var(--color-text-primary);
+  font-size: 0.85rem;
+  font-family: inherit;
+  outline: none;
+}
+
+.searchInput::placeholder {
+  color: var(--color-text-muted);
+}
+
+.clearSearchBtn {
+  position: absolute;
+  inset-inline-end: 0;
+  background: transparent;
+  border: none;
+  color: var(--color-text-muted);
+  cursor: pointer;
+  padding: 4px;
+  font-size: 0.78rem;
+  line-height: 1;
+}
+
+/* =========================================================
+   3. 01 / COMPACT FLAGSHIP STRIP (IS IT WORTH BUYING)
+   ========================================================= */
+.flagshipStage {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: 14px;
+  padding-block: 18px;
+  border-block-end: 1px solid var(--color-border-strong);
+  background: radial-gradient(
+    90% 100% at 50% 0%,
+    var(--color-accent-subtle) 0%,
+    transparent 80%
+  );
+}
+
+@media (min-width: 900px) {
+  .flagshipStage {
+    grid-template-columns: minmax(0, 1.25fr) minmax(0, 1fr);
+    gap: 32px;
+    padding-block: 28px;
+    align-items: center;
+  }
+}
+
+.flagshipIdentity {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  min-width: 0;
+}
+
+.flagshipHeaderLink {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  text-decoration: none;
+  color: inherit;
+  min-width: 0;
+}
+
+.flagshipLogoWrap {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-width: 0;
+  flex: 1;
+}
+
+.flagshipIndexBadge {
+  font-family: var(--font-mono, monospace);
+  font-size: 0.78rem;
+  font-weight: 800;
+  color: var(--color-accent-primary);
+  font-variant-numeric: tabular-nums;
+  flex-shrink: 0;
+}
+
+.flagshipLead {
+  font-size: 0.84rem;
+  color: var(--color-text-secondary);
+  margin: 0;
+  line-height: 1.55;
+}
+
+@media (min-width: 768px) {
+  .flagshipLead {
+    font-size: 0.92rem;
+  }
+}
+
+/* Compact Quick-Check Console */
+.flagshipConsole {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  min-width: 0;
+}
+
+@media (min-width: 900px) {
+  .flagshipConsole {
+    padding-inline-start: 28px;
+    border-inline-start: 1px solid var(--color-border-hairline);
+  }
+}
+
+.quickPriceForm {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  width: 100%;
+  min-width: 0;
+  padding-block: 4px;
+  border-block-end: 1.5px solid var(--color-border-strong);
+  transition: border-color 0.2s ease;
+}
+
+.quickPriceForm:focus-within {
+  border-color: var(--color-accent-primary);
+}
+
+.currencyPrefix {
+  font-family: var(--font-mono, monospace);
+  font-size: 1.05rem;
+  font-weight: 800;
+  color: var(--color-accent-primary);
+  font-variant-numeric: tabular-nums;
+  flex-shrink: 0;
+}
+
+.quickPriceInput {
+  flex: 1;
+  min-width: 0;
+  width: 100%;
+  background: transparent;
+  border: none;
+  padding-block: 6px;
+  font-family: var(--font-mono, monospace);
+  font-size: 0.95rem;
+  font-weight: 700;
+  color: var(--color-text-primary);
+  font-variant-numeric: tabular-nums;
+  outline: none;
+}
+
+.quickPriceInput::placeholder {
+  font-family: var(--font-sans, inherit);
+  color: var(--color-text-muted);
+  font-weight: 500;
+  font-size: 0.82rem;
+}
+
+.quickLaunchBtn {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  background: transparent;
+  border: none;
+  padding: 6px 4px;
+  color: var(--color-accent-primary);
+  font-family: inherit;
+  font-size: 0.82rem;
+  font-weight: 800;
+  cursor: pointer;
+  white-space: nowrap;
+  flex-shrink: 0;
+  transition: color 0.18s ease;
+}
+
+.quickLaunchBtn:hover {
+  color: var(--color-accent-hover);
+}
+
+/* =========================================================
+   4. EDITORIAL CHAPTERS & OPEN LEDGER ROWS (ZERO CARDS)
+   ========================================================= */
+.chaptersContainer {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+
+.chapterSection {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  padding-block: 20px;
+  border-block-end: 1px solid var(--color-border-strong);
+}
+
+@media (min-width: 980px) {
+  .chapterSection {
+    grid-template-columns: 240px minmax(0, 1fr);
+    gap: 36px;
+    padding-block: 36px;
+  }
+}
+
+.chapterSidebar {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  padding-block-end: 10px;
+  border-block-end: 1px solid var(--color-border-hairline);
+  min-width: 0;
+}
+
+@media (min-width: 980px) {
+  .chapterSidebar {
+    position: sticky;
+    top: 96px;
+    align-self: start;
+    gap: 6px;
+    padding-block-end: 0;
+    border-block-end: none;
+  }
+}
+
+.chapterCode {
+  font-family: var(--font-mono, monospace);
+  font-size: 0.68rem;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--color-accent-primary);
+  font-variant-numeric: tabular-nums;
+}
+
+.chapterTitle {
+  font-size: 1.02rem;
+  font-weight: 800;
+  color: var(--color-text-primary);
+  margin: 0;
+  line-height: 1.3;
+}
+
+@media (min-width: 768px) {
+  .chapterTitle {
+    font-size: 1.14rem;
+  }
+}
+
+.chapterSub {
+  display: none;
+  font-size: 0.8rem;
+  color: var(--color-text-muted);
+  margin: 0;
+  line-height: 1.55;
+}
+
+@media (min-width: 768px) {
+  .chapterSub {
+    display: block;
+  }
+}
+
+/* Ledger List */
+.ledgerList {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+
+.ledgerRow {
+  position: relative;
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 12px;
+  padding-block: 14px;
+  padding-inline: 4px;
+  border-block-end: 1px solid var(--color-border-hairline);
+  text-decoration: none;
+  color: inherit;
+  min-width: 0;
+  transition:
+    background-color 0.2s ease,
+    padding-inline-start 0.2s ease;
+}
+
+.ledgerRow:last-child {
+  border-block-end: none;
+}
+
+@media (min-width: 768px) {
+  .ledgerRow {
+    grid-template-columns: 68px minmax(0, 1.35fr) minmax(0, 1fr) auto;
+    gap: 22px;
+    padding-block: 22px;
+    padding-inline: 10px;
+  }
+}
+
+.ledgerRow:hover,
+.ledgerRow:focus-visible {
+  background: linear-gradient(
+    90deg,
+    var(--color-accent-subtle) 0%,
+    transparent 100%
+  );
+  outline: none;
+}
+
+/* Column 1: Number + Naked Architectural Icon */
+.rowIndexCol {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-shrink: 0;
+}
+
+@media (min-width: 768px) {
+  .rowIndexCol {
+    gap: 12px;
+  }
+}
+
+.rowIndexNum {
+  font-family: var(--font-mono, monospace);
+  font-size: 0.76rem;
+  font-weight: 700;
+  color: var(--color-text-muted);
+  font-variant-numeric: tabular-nums;
+  transition: color 0.18s ease;
+}
+
+.ledgerRow:hover .rowIndexNum,
+.ledgerRow:focus-visible .rowIndexNum {
+  color: var(--color-accent-primary);
+}
+
+.rowBareIcon {
+  color: var(--color-text-secondary);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  transition: color 0.18s ease, transform 0.2s ease;
+}
+
+.ledgerRow:hover .rowBareIcon,
+.ledgerRow:focus-visible .rowBareIcon {
+  color: var(--color-accent-primary);
+  transform: scale(1.06);
+}
+
+/* Column 2: Tool Title + Concise Lead */
+.rowMainCol {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+
+.rowTitle {
+  font-size: 0.96rem;
+  font-weight: 800;
+  color: var(--color-text-primary);
+  margin: 0;
+  line-height: 1.35;
+  overflow-wrap: break-word;
+  transition: color 0.18s ease;
+}
+
+@media (min-width: 768px) {
+  .rowTitle {
+    font-size: 1.1rem;
+  }
+}
+
+.ledgerRow:hover .rowTitle,
+.ledgerRow:focus-visible .rowTitle {
+  color: var(--color-accent-primary);
+}
+
+.rowDesc {
+  font-size: 0.8rem;
+  color: var(--color-text-secondary);
+  margin: 0;
+  line-height: 1.5;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+@media (min-width: 768px) {
+  .rowDesc {
+    font-size: 0.85rem;
+    display: block;
+  }
+}
+
+/* Column 3: Architectural Micro-Signature (Desktop Only to keep Mobile Clean) */
+.rowSpecCol {
+  display: none;
+  min-width: 0;
+}
+
+@media (min-width: 768px) {
+  .rowSpecCol {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 3px;
+    border-inline-start: 1px solid var(--color-border-hairline);
+    padding-inline-start: 16px;
+  }
+}
+
+.specFormula {
+  font-family: var(--font-mono, monospace);
+  font-size: 0.76rem;
+  font-weight: 600;
+  color: var(--color-text-secondary);
+  font-variant-numeric: tabular-nums;
+  transition: color 0.18s ease;
+}
+
+.ledgerRow:hover .specFormula,
+.ledgerRow:focus-visible .specFormula {
+  color: var(--color-text-primary);
+}
+
+.specOutputLabel {
+  font-size: 0.71rem;
+  color: var(--color-text-muted);
+}
+
+/* Column 4: Directional Vector Arrow */
+.rowActionCol {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 0.8rem;
+  font-weight: 700;
+  color: var(--color-text-muted);
+  white-space: nowrap;
+  flex-shrink: 0;
+  transition: color 0.18s ease;
+}
+
+.actionLabelDesktop {
+  display: none;
+}
+
+@media (min-width: 640px) {
+  .actionLabelDesktop {
+    display: inline;
+  }
+}
+
+.actionVector {
+  font-size: 1.05rem;
+  line-height: 1;
+  display: inline-block;
+  transition: transform 0.22s cubic-bezier(0.22, 1, 0.36, 1), color 0.18s ease;
+}
+
+.ledgerRow:hover .rowActionCol,
+.ledgerRow:focus-visible .rowActionCol {
+  color: var(--color-accent-primary);
+}
+
+.ledgerRow:hover .actionVector,
+.ledgerRow:focus-visible .actionVector {
+  color: var(--color-accent-primary);
+  transform: translateY(-2px);
+}
+
+/* Empty Filter State */
+.emptyLedger {
+  padding-block: 44px;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 10px;
+  border-block-end: 1px solid var(--color-border-hairline);
+}
+
+.emptyTitle {
+  font-size: 0.98rem;
+  font-weight: 800;
+  color: var(--color-text-primary);
+  margin: 0;
+}
+
+.emptyResetBtn {
+  background: transparent;
+  border: none;
+  padding: 0;
+  font-family: inherit;
+  font-size: 0.84rem;
+  font-weight: 700;
+  color: var(--color-accent-primary);
+  border-block-end: 1px solid var(--color-accent-primary);
+  cursor: pointer;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .ledgerRow,
+  .rowBareIcon,
+  .actionVector,
+  .quickLaunchBtn {
+    transition: none;
+  }
+}

@@ -1,0 +1,159 @@
+.pageShell {
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+}
+
+.main {
+  flex: 1;
+  padding-block-start: var(--space-10);
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-10);
+}
+
+.header {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+  padding-block-end: var(--space-8);
+  border-block-end: 1px solid var(--color-border-hairline);
+}
+
+.title {
+  font-size: var(--text-2xl);
+  color: var(--color-text-primary);
+}
+
+.subtitle {
+  font-size: var(--text-md);
+  color: var(--color-text-secondary);
+  max-inline-size: 65ch;
+}
+
+.legalTabs {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+  margin-block-start: var(--space-2);
+}
+
+.tabLink {
+  display: inline-flex;
+  align-items: center;
+  min-block-size: 38px;
+  padding-inline: var(--space-4);
+  background-color: var(--color-bg-elevated);
+  border: 1px solid var(--color-border-hairline);
+  border-radius: var(--radius-sm);
+  font-size: var(--text-xs);
+  font-weight: 600;
+  color: var(--color-text-secondary);
+  white-space: nowrap;
+}
+
+.tabLink:hover {
+  color: var(--color-text-primary);
+  border-color: var(--color-border-strong);
+}
+
+.tabActive {
+  background-color: var(--color-accent-subtle);
+  color: var(--color-accent-primary);
+  border-color: var(--color-accent-border);
+}
+
+.cookieControlCard {
+  background-color: var(--color-bg-elevated);
+  border: 1px solid var(--color-accent-border);
+  border-radius: var(--radius-md);
+  padding: var(--space-6);
+  box-shadow: var(--shadow-card);
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+  max-inline-size: 72ch;
+}
+
+.cookieControlHeader {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+}
+
+.shieldIcon {
+  color: var(--color-accent-primary);
+  flex-shrink: 0;
+}
+
+.controlTitle {
+  font-family: var(--font-body);
+  font-size: var(--text-md);
+  font-weight: 600;
+  color: var(--color-text-primary);
+}
+
+.controlDescription {
+  font-size: var(--text-sm);
+  color: var(--color-text-secondary);
+  line-height: var(--leading-relaxed);
+}
+
+.currentStatusRow {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  padding: var(--space-3) var(--space-4);
+  background-color: var(--color-bg-subtle);
+  border-radius: var(--radius-sm);
+  font-size: var(--text-xs);
+  color: var(--color-text-primary);
+}
+
+.controlButtons {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-3);
+}
+
+.proseContainer {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-8);
+  max-inline-size: var(--measure-reading);
+}
+
+.legalSection {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+}
+
+.sectionHeading {
+  font-family: var(--font-body);
+  font-size: var(--text-lg);
+  font-weight: 600;
+  color: var(--color-text-primary);
+}
+
+.paragraph {
+  font-size: var(--text-base);
+  color: var(--color-text-secondary);
+  line-height: var(--leading-relaxed);
+}
+
+.docFooter {
+  padding-block-start: var(--space-6);
+  border-block-start: 1px solid var(--color-border-hairline);
+  font-size: var(--text-sm);
+  color: var(--color-text-secondary);
+}
+
+.mailLink {
+  font-weight: 600;
+  color: var(--color-accent-primary);
+}
+
+.mailLink:hover {
+  text-decoration: underline;
+}

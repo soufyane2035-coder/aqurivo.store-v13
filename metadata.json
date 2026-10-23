@@ -1,0 +1,8 @@
+{
+  "name": "soufshop.store v1.5",
+  "description": "مساعد ذكي يتحدث العربية ويقوم بكتابة محتوى ملفات التعليمات باللغة العربية بدقة واحترافية.",
+  "requestFramePermissions": [],
+  "majorCapabilities": [
+    "MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"
+  ]
+}

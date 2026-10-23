@@ -1,0 +1,15 @@
+[
+  {
+    "id": "rep_1792424106181_4pueh",
+    "type": "product_issue",
+    "reason": "broken_link",
+    "productSlug": "test",
+    "productName": "Test Product",
+    "email": "test@example.com",
+    "message": "هذا رابط لا يعمل وأردت الإبلاغ عنه",
+    "orderRef": "",
+    "locale": "ar",
+    "status": "new",
+    "createdAt": "2026-10-19T15:35:06.181Z"
+  }
+]

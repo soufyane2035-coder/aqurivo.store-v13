@@ -1,0 +1,22 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="512" height="512" fill="none">
+  <!-- Full-bleed dark architectural canvas so Google's circular SERP mask has zero white corners -->
+  <rect width="512" height="512" fill="#0d1117" />
+  <!-- Subtle inner radial glow for contrast -->
+  <circle cx="256" cy="256" r="216" fill="#111827" />
+  <circle cx="256" cy="256" r="212" stroke="#2DD4BF" stroke-opacity="0.22" stroke-width="4" />
+
+  <!-- AQURIVO Emblem scaled inside the 75% circular safe-zone (32x32 -> 352x352 centered at 80,80) -->
+  <g transform="translate(80, 76) scale(11)">
+    <!-- Outer Gateway Arch "A" Pillar Structure -->
+    <path
+      fill-rule="evenodd"
+      clip-rule="evenodd"
+      d="M4.5 27.5L12.1 6.4C12.9 4.2 14.3 3.5 16 3.5C17.7 3.5 19.1 4.2 19.9 6.4L27.5 27.5H22.6L17.4 12.1C17.0 10.9 16.5 10.5 16 10.5C15.5 10.5 15.0 10.9 14.6 12.1L9.4 27.5H4.5Z"
+      fill="#F9FAFB"
+    />
+    <!-- Precision Keystone Discovery Ray at Arch Apex -->
+    <path d="M16 3.5L17.6 7.5L16 9.2L14.4 7.5L16 3.5Z" fill="#2DD4BF" />
+    <!-- Central Discovery Diamond & Gateway Portal Crossbar -->
+    <path d="M16 14.5L20.8 20.5L16 26.5L11.2 20.5L16 14.5Z" fill="#2DD4BF" />
+  </g>
+</svg>

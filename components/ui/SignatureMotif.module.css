@@ -1,0 +1,43 @@
+.motifBar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-2);
+  margin-block-end: var(--space-3);
+  padding-block-end: var(--space-2);
+  border-block-end: 1px solid var(--color-border-hairline);
+  width: 100%;
+  min-inline-size: 0;
+}
+
+.titleGroup {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+  min-inline-size: 0;
+}
+
+.accentBar {
+  width: 4px;
+  height: 18px;
+  border-radius: 2px;
+  background-color: var(--color-accent-primary);
+  flex-shrink: 0;
+}
+
+.labelText {
+  font-family: var(--font-display);
+  font-size: clamp(1.05rem, 2.2vw, 1.25rem);
+  font-weight: 700;
+  color: var(--color-text-primary);
+  margin: 0;
+  line-height: 1.35;
+  min-inline-size: 0;
+}
+
+.subtleText {
+  font-size: var(--text-xs);
+  color: var(--color-text-muted);
+  min-inline-size: 0;
+}
