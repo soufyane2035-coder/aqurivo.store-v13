@@ -6,12 +6,12 @@ const isAiStudioPreviewEnv =
 
 const strictCspHeader = [
   "default-src 'self'",
-  "script-src 'self' 'unsafe-inline' https://trustedorigin.org https://*.trustedorigin.org https://cdn.ywxi.net https://*.ywxi.net https://www.trustedsite.com https://*.trustedsite.com https://cdn.trustedsite.com https://apis.google.com https://www.gstatic.com https://www.googletagmanager.com",
+  "script-src 'self' 'unsafe-inline' https://va.vercel-scripts.com https://trustedorigin.org https://*.trustedorigin.org https://cdn.ywxi.net https://*.ywxi.net https://www.trustedsite.com https://*.trustedsite.com https://cdn.trustedsite.com https://apis.google.com https://www.gstatic.com https://www.googletagmanager.com",
   "style-src 'self' 'unsafe-inline' https://trustedorigin.org https://*.trustedorigin.org https://cdn.ywxi.net https://*.ywxi.net https://www.trustedsite.com https://*.trustedsite.com https://fonts.googleapis.com",
   "img-src 'self' data: blob: https: https://res.cloudinary.com https://trustedorigin.org https://*.trustedorigin.org https://cdn.ywxi.net https://*.ywxi.net https://www.trustedsite.com https://*.trustedsite.com",
   "media-src 'self' data: blob: https:",
   "font-src 'self' https://fonts.gstatic.com https://trustedorigin.org https://*.trustedorigin.org https://cdn.ywxi.net https://*.ywxi.net",
-  "connect-src 'self' https://trustedorigin.org https://*.trustedorigin.org https://cdn.ywxi.net https://*.ywxi.net https://www.trustedsite.com https://*.trustedsite.com https://*.amazonaws.com https://s3-us-west-2.amazonaws.com https://securedsite-us.us-3.evennode.com https://*.evennode.com https://dns.google https://*.googleapis.com https://*.firebaseio.com wss://*.firebaseio.com https://*.firebasestorage.app https://identitytoolkit.googleapis.com https://securetoken.googleapis.com https://api.cloudinary.com https://res.cloudinary.com https://www.google-analytics.com https://*.google-analytics.com https://*.analytics.google.com",
+  "connect-src 'self' https://vitals.vercel-insights.com https://trustedorigin.org https://*.trustedorigin.org https://cdn.ywxi.net https://*.ywxi.net https://www.trustedsite.com https://*.trustedsite.com https://*.amazonaws.com https://s3-us-west-2.amazonaws.com https://securedsite-us.us-3.evennode.com https://*.evennode.com https://dns.google https://*.googleapis.com https://*.firebaseio.com wss://*.firebaseio.com https://*.firebasestorage.app https://identitytoolkit.googleapis.com https://securetoken.googleapis.com https://api.cloudinary.com https://res.cloudinary.com https://www.google-analytics.com https://*.google-analytics.com https://*.analytics.google.com",
   "frame-src 'self' https://trustedorigin.org https://*.trustedorigin.org https://cdn.ywxi.net https://*.ywxi.net https://www.trustedsite.com https://*.trustedsite.com https://*.firebaseapp.com https://accounts.google.com https://www.youtube-nocookie.com https://www.youtube.com https://player.vimeo.com",
   "frame-ancestors 'self'",
   "object-src 'none'",
@@ -22,12 +22,12 @@ const strictCspHeader = [
 
 const previewCspHeader = [
   "default-src 'self'",
-  "script-src 'self' 'unsafe-inline' 'unsafe-eval' https://trustedorigin.org https://*.trustedorigin.org https://cdn.ywxi.net https://*.ywxi.net https://www.trustedsite.com https://*.trustedsite.com https://cdn.trustedsite.com https://apis.google.com https://www.gstatic.com https://www.googletagmanager.com",
+  "script-src 'self' 'unsafe-inline' 'unsafe-eval' https://va.vercel-scripts.com https://trustedorigin.org https://*.trustedorigin.org https://cdn.ywxi.net https://*.ywxi.net https://www.trustedsite.com https://*.trustedsite.com https://cdn.trustedsite.com https://apis.google.com https://www.gstatic.com https://www.googletagmanager.com",
   "style-src 'self' 'unsafe-inline' https://trustedorigin.org https://*.trustedorigin.org https://cdn.ywxi.net https://*.ywxi.net https://www.trustedsite.com https://*.trustedsite.com https://fonts.googleapis.com",
   "img-src 'self' data: blob: https: https://res.cloudinary.com https://trustedorigin.org https://*.trustedorigin.org https://cdn.ywxi.net https://*.ywxi.net https://www.trustedsite.com https://*.trustedsite.com",
   "media-src 'self' data: blob: https:",
   "font-src 'self' https://fonts.gstatic.com https://trustedorigin.org https://*.trustedorigin.org https://cdn.ywxi.net https://*.ywxi.net",
-  "connect-src 'self' https://trustedorigin.org https://*.trustedorigin.org https://cdn.ywxi.net https://*.ywxi.net https://www.trustedsite.com https://*.trustedsite.com https://*.amazonaws.com https://s3-us-west-2.amazonaws.com https://securedsite-us.us-3.evennode.com https://*.evennode.com https://dns.google https://*.googleapis.com https://*.firebaseio.com wss://*.firebaseio.com https://*.firebasestorage.app https://identitytoolkit.googleapis.com https://securetoken.googleapis.com https://api.cloudinary.com https://res.cloudinary.com https://www.google-analytics.com https://*.google-analytics.com https://*.analytics.google.com",
+  "connect-src 'self' https://vitals.vercel-insights.com https://trustedorigin.org https://*.trustedorigin.org https://cdn.ywxi.net https://*.ywxi.net https://www.trustedsite.com https://*.trustedsite.com https://*.amazonaws.com https://s3-us-west-2.amazonaws.com https://securedsite-us.us-3.evennode.com https://*.evennode.com https://dns.google https://*.googleapis.com https://*.firebaseio.com wss://*.firebaseio.com https://*.firebasestorage.app https://identitytoolkit.googleapis.com https://securetoken.googleapis.com https://api.cloudinary.com https://res.cloudinary.com https://www.google-analytics.com https://*.google-analytics.com https://*.analytics.google.com",
   "frame-src 'self' https://trustedorigin.org https://*.trustedorigin.org https://cdn.ywxi.net https://*.ywxi.net https://www.trustedsite.com https://*.trustedsite.com https://*.firebaseapp.com https://accounts.google.com https://www.youtube-nocookie.com https://www.youtube.com https://player.vimeo.com",
   "frame-ancestors 'self' https://aistudio.google.com https://*.google.com https://*.googleusercontent.com https://*.gstatic.com",
   "object-src 'none'",
@@ -38,10 +38,6 @@ const previewCspHeader = [
 
 const nextConfig: NextConfig = {
   reactStrictMode: true,
-  devIndicators: {
-    buildActivity: false,
-    appIsrStatus: false,
-  },
   env: {
     NEXT_PUBLIC_SITE_URL: process.env.NEXT_PUBLIC_SITE_URL || 'https://aqurivo.store',
     NEXT_PUBLIC_SITE_URL_COM: process.env.NEXT_PUBLIC_SITE_URL_COM || 'https://aqurivo.com',

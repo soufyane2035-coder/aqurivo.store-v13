@@ -35,7 +35,7 @@ const BASE_CSP_DIRECTIVES = [
   "img-src 'self' data: blob: https: https://res.cloudinary.com https://trustedorigin.org https://*.trustedorigin.org https://cdn.ywxi.net https://*.ywxi.net https://www.trustedsite.com https://*.trustedsite.com",
   "media-src 'self' data: blob: https: https://m.media-amazon.com https://*.media-amazon.com https://images-na.ssl-images-amazon.com https://res.cloudinary.com",
   "font-src 'self' https://fonts.gstatic.com https://trustedorigin.org https://*.trustedorigin.org https://cdn.ywxi.net https://*.ywxi.net",
-  "connect-src 'self' https://trustedorigin.org https://*.trustedorigin.org https://cdn.ywxi.net https://*.ywxi.net https://www.trustedsite.com https://*.trustedsite.com https://*.amazonaws.com https://s3-us-west-2.amazonaws.com https://securedsite-us.us-3.evennode.com https://*.evennode.com https://dns.google https://*.googleapis.com https://*.firebaseio.com wss://*.firebaseio.com https://*.firebasestorage.app https://identitytoolkit.googleapis.com https://securetoken.googleapis.com https://api.cloudinary.com https://res.cloudinary.com https://www.google-analytics.com https://*.google-analytics.com https://*.analytics.google.com",
+  "connect-src 'self' https://vitals.vercel-insights.com https://trustedorigin.org https://*.trustedorigin.org https://cdn.ywxi.net https://*.ywxi.net https://www.trustedsite.com https://*.trustedsite.com https://*.amazonaws.com https://s3-us-west-2.amazonaws.com https://securedsite-us.us-3.evennode.com https://*.evennode.com https://dns.google https://*.googleapis.com https://*.firebaseio.com wss://*.firebaseio.com https://*.firebasestorage.app https://identitytoolkit.googleapis.com https://securetoken.googleapis.com https://api.cloudinary.com https://res.cloudinary.com https://www.google-analytics.com https://*.google-analytics.com https://*.analytics.google.com",
   "frame-src 'self' https://trustedorigin.org https://*.trustedorigin.org https://cdn.ywxi.net https://*.ywxi.net https://www.trustedsite.com https://*.trustedsite.com https://*.firebaseapp.com https://accounts.google.com https://www.youtube-nocookie.com https://www.youtube.com https://player.vimeo.com",
   "object-src 'none'",
   "base-uri 'self'",
@@ -44,10 +44,10 @@ const BASE_CSP_DIRECTIVES = [
 ];
 
 const PRODUCTION_SCRIPT_SRC =
-  "script-src 'self' 'unsafe-inline' https://trustedorigin.org https://*.trustedorigin.org https://cdn.ywxi.net https://*.ywxi.net https://www.trustedsite.com https://*.trustedsite.com https://cdn.trustedsite.com https://apis.google.com https://www.gstatic.com https://www.googletagmanager.com";
+  "script-src 'self' 'unsafe-inline' https://va.vercel-scripts.com https://trustedorigin.org https://*.trustedorigin.org https://cdn.ywxi.net https://*.ywxi.net https://www.trustedsite.com https://*.trustedsite.com https://cdn.trustedsite.com https://apis.google.com https://www.gstatic.com https://www.googletagmanager.com";
 
 const PREVIEW_SCRIPT_SRC =
-  "script-src 'self' 'unsafe-inline' 'unsafe-eval' https://trustedorigin.org https://*.trustedorigin.org https://cdn.ywxi.net https://*.ywxi.net https://www.trustedsite.com https://*.trustedsite.com https://cdn.trustedsite.com https://apis.google.com https://www.gstatic.com https://www.googletagmanager.com";
+  "script-src 'self' 'unsafe-inline' 'unsafe-eval' https://va.vercel-scripts.com https://trustedorigin.org https://*.trustedorigin.org https://cdn.ywxi.net https://*.ywxi.net https://www.trustedsite.com https://*.trustedsite.com https://cdn.trustedsite.com https://apis.google.com https://www.gstatic.com https://www.googletagmanager.com";
 
 const STRICT_CSP_HEADER = [
   ...BASE_CSP_DIRECTIVES,

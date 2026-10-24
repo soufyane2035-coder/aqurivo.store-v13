@@ -4,6 +4,7 @@ import fs from 'fs';
 import path from 'path';
 import { cookies, headers } from 'next/headers';
 import { loadServerEnv } from './env';
+import { verifySignedSessionToken } from './session-token';
 import { tursoFirestoreAdapter } from '../database/turso-firestore-adapter';
 
 const SOUFSHOP_PROJECT_ID =
@@ -187,38 +188,18 @@ async function tryRecoverTokensFromRequestContext(): Promise<void> {
     if (fbRefreshToken && fbRefreshToken.length > 16) {
       setServerFirebaseRefreshToken(fbRefreshToken);
     }
-    const csrfHeader = hdrs.get('x-csrf-token')?.trim();
-    if (csrfHeader && csrfHeader.startsWith('v1.')) {
-      const parts = csrfHeader.split('.');
-      if (parts.length === 3) {
-        const parsed = JSON.parse(
-          Buffer.from(parts[1], 'base64url').toString('utf8')
-        ) as { rt?: string };
-        if (parsed.rt && typeof parsed.rt === 'string') {
-          setServerFirebaseRefreshToken(parsed.rt);
-        }
-      }
-    }
   } catch {
     // Outside request context
   }
 
   try {
     const cookieStore = await cookies();
-    for (const cookieName of ['souf_session', 'souf_csrf']) {
-      const val = cookieStore.get(cookieName)?.value;
-      if (val && val.startsWith('v1.')) {
-        const parts = val.split('.');
-        if (parts.length === 3) {
-          const parsed = JSON.parse(
-            Buffer.from(parts[1], 'base64url').toString('utf8')
-          ) as { rt?: string };
-          if (parsed.rt && typeof parsed.rt === 'string') {
-            setServerFirebaseRefreshToken(parsed.rt);
-            break;
-          }
-        }
-      }
+    const sessionToken = cookieStore.get('souf_session')?.value;
+    const parsed = sessionToken
+      ? verifySignedSessionToken(sessionToken)
+      : null;
+    if (parsed?.rt) {
+      setServerFirebaseRefreshToken(parsed.rt);
     }
   } catch {
     // Outside request context

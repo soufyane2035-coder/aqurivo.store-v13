@@ -17,6 +17,7 @@ import {
   createUserWithEmailAndPassword,
   sendPasswordResetEmail,
   signInWithEmailAndPassword,
+  signOut,
   signInWithPopup,
 } from 'firebase/auth';
 import {
@@ -77,6 +78,7 @@ export function AuthFormView({ mode }: AuthFormViewProps) {
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [errorMessage, setErrorMessage] = useState('');
+  const [sessionExchangeFailed, setSessionExchangeFailed] = useState(false);
   const [infoMessage, setInfoMessage] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isResettingPassword, setIsResettingPassword] = useState(false);
@@ -100,10 +102,10 @@ export function AuthFormView({ mode }: AuthFormViewProps) {
   };
 
   useEffect(() => {
-    if (user) {
+    if (user && !isSubmitting && !sessionExchangeFailed) {
       router.replace(getRedirectDestination());
     }
-  }, [user, router]);
+  }, [user, isSubmitting, sessionExchangeFailed, router]);
 
   // Compute password strength for registration
   const passwordStrength = React.useMemo(() => {
@@ -129,21 +131,43 @@ export function AuthFormView({ mode }: AuthFormViewProps) {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ idToken, refreshToken, rememberMe }),
       });
-      if (res.ok) {
-        const data = (await res.json()) as { csrfToken?: string };
-        if (data.csrfToken) {
-          try {
-            window.sessionStorage.setItem('soufshop_session_token', data.csrfToken);
-          } catch {
-            // Ignore sessionStorage errors
-          }
-        }
+      const data = (await res.json()) as {
+        authenticated?: boolean;
+        csrfToken?: string;
+      };
+      if (!res.ok || !data.authenticated || !data.csrfToken) {
+        throw new Error('Server session could not be created.');
       }
+
+      try {
+        window.sessionStorage.setItem('soufshop_session_token', data.csrfToken);
+      } catch {
+        // The HTTP-only session cookie remains authoritative.
+      }
+
+      setSessionExchangeFailed(false);
+      await refreshSession();
+      router.replace(getRedirectDestination());
     } catch {
-      // Even if cookie exchange fails, Firebase client state is active
+      setSessionExchangeFailed(true);
+      try {
+        const auth = getFirebaseClientAuth();
+        if (auth) await signOut(auth);
+      } catch (signOutError) {
+        console.error('Unable to clear Firebase client state after session failure.', signOutError);
+      }
+      try {
+        window.sessionStorage.removeItem('soufshop_session_token');
+      } catch {
+        // Ignore sessionStorage errors.
+      }
+      await refreshSession();
+      setErrorMessage(
+        isAr
+          ? 'تعذر إنشاء جلسة آمنة. لم يكتمل تسجيل الدخول؛ يرجى المحاولة مرة أخرى.'
+          : 'A secure session could not be created. Sign-in was not completed; please try again.'
+      );
     }
-    await refreshSession();
-    router.replace(getRedirectDestination());
   };
 
   const handleForgotPassword = async () => {
@@ -190,6 +214,7 @@ export function AuthFormView({ mode }: AuthFormViewProps) {
     e.preventDefault();
     setErrorMessage('');
     setInfoMessage('');
+    setSessionExchangeFailed(false);
 
     if (mode === 'register') {
       if (password !== confirmPassword) {
@@ -272,6 +297,7 @@ export function AuthFormView({ mode }: AuthFormViewProps) {
   const handleGoogleSignIn = async () => {
     setErrorMessage('');
     setInfoMessage('');
+    setSessionExchangeFailed(false);
     const auth = getFirebaseClientAuth();
     if (!auth) {
       setErrorMessage(

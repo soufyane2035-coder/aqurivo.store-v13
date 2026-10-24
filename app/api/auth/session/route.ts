@@ -10,7 +10,7 @@ import {
 } from '@/server/config/env';
 import {
   checkRateLimit,
-  createSignedSessionToken,
+  ADMIN_SESSION_DURATION_MS,
   CSRF_COOKIE_NAME,
   generateCsrfToken,
   getClientIpFromHeaders,
@@ -20,6 +20,7 @@ import {
   SESSION_COOKIE_NAME,
   verifyCsrfRequest,
 } from '@/server/middleware/security';
+import { createSignedSessionToken } from '@/server/config/session-token';
 import { rejectVerifiedBot } from '@/server/middleware/botid';
 import { syncUserProfileOnLogin } from '@/server/repositories/users.repo';
 
@@ -89,12 +90,18 @@ export async function GET(req: NextRequest) {
   }
 
   const session = await getServerSession();
+  const issuedAt = session?.sessionIssuedAt ?? Date.now();
+  const sessionExpiresAt =
+    session?.sessionExpiresAt ??
+    issuedAt +
+      (session?.role === 'admin' ? ADMIN_SESSION_DURATION_MS : SESSION_DURATION_MS);
   const csrfToken = session
     ? createSignedSessionToken({
         uid: session.uid,
         email: session.email,
         emailVerified: session.emailVerified,
-        exp: Date.now() + SESSION_DURATION_MS,
+        iat: issuedAt,
+        exp: sessionExpiresAt,
       })
     : generateCsrfToken();
 
@@ -112,7 +119,13 @@ export async function GET(req: NextRequest) {
   response.cookies.set(
     CSRF_COOKIE_NAME,
     csrfToken,
-    getCookieOptions(req, false, 60 * 60 * 24)
+    getCookieOptions(
+      req,
+      false,
+      session
+        ? Math.max(0, Math.floor((sessionExpiresAt - Date.now()) / 1000))
+        : 60 * 60 * 24
+    )
   );
 
   return response;
@@ -189,13 +202,25 @@ export async function POST(req: NextRequest) {
       setServerFirebaseRefreshToken(refreshToken);
     }
 
-    const signedSessionToken = createSignedSessionToken({
+    const issuedAt = Date.now();
+    const isAdmin =
+      emailVerified &&
+      loadServerEnv().adminEmails.includes(email.trim().toLowerCase());
+    const sessionDurationMs = isAdmin
+      ? ADMIN_SESSION_DURATION_MS
+      : SESSION_DURATION_MS;
+    const sessionPayload = {
       uid,
       email,
       emailVerified,
-      exp: Date.now() + SESSION_DURATION_MS,
+      iat: issuedAt,
+      exp: issuedAt + sessionDurationMs,
+    };
+    const signedSessionToken = createSignedSessionToken({
+      ...sessionPayload,
       ...(refreshToken ? { rt: refreshToken } : {}),
     });
+    const csrfToken = createSignedSessionToken(sessionPayload);
 
     const profile = await syncUserProfileOnLogin({
       uid,
@@ -203,14 +228,14 @@ export async function POST(req: NextRequest) {
       emailVerified,
     });
 
-    const maxAgeSec = Math.floor(SESSION_DURATION_MS / 1000);
+    const maxAgeSec = Math.floor(sessionDurationMs / 1000);
     const response = NextResponse.json({
       authenticated: true,
       user: {
         email: profile.email,
         role: profile.role,
       },
-      csrfToken: signedSessionToken,
+      csrfToken,
     });
 
     response.cookies.set(
@@ -221,7 +246,7 @@ export async function POST(req: NextRequest) {
 
     response.cookies.set(
       CSRF_COOKIE_NAME,
-      signedSessionToken,
+      csrfToken,
       getCookieOptions(req, false, maxAgeSec)
     );
 

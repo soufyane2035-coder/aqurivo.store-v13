@@ -6,6 +6,8 @@ Vercel manages function provisioning and scaling. `vercel.json` pins server
 functions to `arn1` (Stockholm), near Turso's `eu-north-1` database region.
 Static assets and cacheable responses continue to use Vercel's distributed
 edge network; the application does not create replicas or split database data.
+The Content Security Policy permits Vercel Analytics' script and vitals
+collector origins so the configured analytics integration can load.
 
 ## Caching and Turso queries
 
@@ -21,6 +23,10 @@ edge network; the application does not create replicas or split database data.
 
 ## Request protection
 
+- Configure `SESSION_COOKIE_SECRET` as a private random value of at least 32
+  characters in every environment. Never use a `NEXT_PUBLIC_` prefix; rotating
+  this secret invalidates existing signed sessions.
+- Administrator sessions expire after one hour and require signing in again.
 - Configure `IP_HASH_SALT` as a private environment variable in every Vercel
   environment; use a random value of at least 32 characters and never expose it
   with a `NEXT_PUBLIC_` prefix.

@@ -14,84 +14,39 @@ import {
   loadServerEnv,
   MIN_SESSION_COOKIE_SECRET_LENGTH,
 } from '@/server/config/env';
+import {
+  SIGNED_SESSION_TOKEN_PREFIX,
+  verifySignedSessionToken,
+  type SignedSessionPayload,
+} from '@/server/config/session-token';
 
 export const SESSION_COOKIE_NAME = 'souf_session';
 export const CSRF_COOKIE_NAME = 'souf_csrf';
 export const CSRF_HEADER_NAME = 'x-csrf-token';
+export const ADMIN_SESSION_DURATION_MS = 60 * 60 * 1000;
 
 export interface AuthenticatedSession {
   uid: string;
   email: string;
   emailVerified: boolean;
   role: 'admin' | 'visitor';
-}
-
-interface SignedSessionPayload {
-  uid: string;
-  email: string;
-  emailVerified: boolean;
-  exp: number;
-  rt?: string;
+  sessionIssuedAt?: number;
+  sessionExpiresAt?: number;
 }
 
 const JWT_FORMAT_REGEX = /^[A-Za-z0-9-_]+\.[A-Za-z0-9-_]+\.[A-Za-z0-9-_]+$/;
-
-function getSigningSecret(): string {
-  const env = loadServerEnv();
-  if (env.sessionCookieSecret.length < MIN_SESSION_COOKIE_SECRET_LENGTH) {
-    throw new Error(
-      `[AQURIVO Configuration Error] SESSION_COOKIE_SECRET must be at least ${MIN_SESSION_COOKIE_SECRET_LENGTH} characters.`
-    );
-  }
-  return env.sessionCookieSecret;
-}
-
-export function createSignedSessionToken(payload: SignedSessionPayload): string {
-  const data = Buffer.from(JSON.stringify(payload), 'utf8').toString('base64url');
-  const signature = createHmac('sha256', getSigningSecret())
-    .update(data)
-    .digest('base64url');
-  return `v1.${data}.${signature}`;
-}
-
-export function verifySignedSessionToken(token: string): SignedSessionPayload | null {
-  if (!token.startsWith('v1.')) return null;
-  const parts = token.split('.');
-  if (parts.length !== 3) return null;
-
-  const [, data, signature] = parts;
-  try {
-    const expected = createHmac('sha256', getSigningSecret())
-      .update(data)
-      .digest('base64url');
-    const a = Buffer.from(signature, 'utf8');
-    const b = Buffer.from(expected, 'utf8');
-    if (a.length !== b.length || !timingSafeEqual(a, b)) {
-      return null;
-    }
-
-    const parsed = JSON.parse(
-      Buffer.from(data, 'base64url').toString('utf8')
-    ) as SignedSessionPayload;
-
-    if (!parsed.uid || !parsed.email || !parsed.exp || Date.now() > parsed.exp) {
-      return null;
-    }
-    if (parsed.rt && typeof parsed.rt === 'string') {
-      setServerFirebaseRefreshToken(parsed.rt);
-    }
-    return parsed;
-  } catch {
-    return null;
-  }
-}
 
 /**
  * Generates a signed CSRF token bound to the server secret.
  */
 export function generateCsrfToken(): string {
   const nonce = randomBytes(18).toString('hex');
-  const secret = getSigningSecret();
+  const secret = loadServerEnv().sessionCookieSecret;
+  if (secret.length < MIN_SESSION_COOKIE_SECRET_LENGTH) {
+    throw new Error(
+      `[AQURIVO Configuration Error] SESSION_COOKIE_SECRET must be at least ${MIN_SESSION_COOKIE_SECRET_LENGTH} characters.`
+    );
+  }
   const signature = createHmac('sha256', secret).update(nonce).digest('hex');
   return `${nonce}.${signature}`;
 }
@@ -99,7 +54,7 @@ export function generateCsrfToken(): string {
 export function verifyCsrfTokenString(token: string | null | undefined): boolean {
   if (!token || !token.includes('.')) return false;
 
-  if (token.startsWith('v1.')) {
+  if (token.startsWith(SIGNED_SESSION_TOKEN_PREFIX)) {
     return verifySignedSessionToken(token) !== null;
   }
 
@@ -107,7 +62,8 @@ export function verifyCsrfTokenString(token: string | null | undefined): boolean
   if (!nonce || !signature) return false;
 
   try {
-    const secret = getSigningSecret();
+    const secret = loadServerEnv().sessionCookieSecret;
+    if (secret.length < MIN_SESSION_COOKIE_SECRET_LENGTH) return false;
     const expected = createHmac('sha256', secret).update(nonce).digest('hex');
     const a = Buffer.from(signature, 'hex');
     const b = Buffer.from(expected, 'hex');
@@ -133,15 +89,25 @@ export async function verifyCsrfRequest(req: NextRequest): Promise<boolean> {
 function buildSessionFromSignedPayload(
   verified: SignedSessionPayload,
   adminEmails: string[]
-): AuthenticatedSession {
+): AuthenticatedSession | null {
   const email = verified.email.trim().toLowerCase();
   const emailVerified = Boolean(verified.emailVerified);
   const isAdmin = emailVerified && adminEmails.includes(email);
+  if (
+    isAdmin &&
+    (verified.iat === undefined ||
+      verified.exp - verified.iat > ADMIN_SESSION_DURATION_MS ||
+      Date.now() - verified.iat >= ADMIN_SESSION_DURATION_MS)
+  ) {
+    return null;
+  }
   return {
     uid: verified.uid,
     email,
     emailVerified,
     role: isAdmin ? 'admin' : 'visitor',
+    ...(verified.iat !== undefined ? { sessionIssuedAt: verified.iat } : {}),
+    sessionExpiresAt: verified.exp,
   };
 }
 
@@ -157,10 +123,14 @@ export async function getServerSession(): Promise<AuthenticatedSession | null> {
     const sessionCookie = cookieStore.get(SESSION_COOKIE_NAME)?.value;
 
     if (sessionCookie) {
-      if (sessionCookie.startsWith('v1.')) {
+      if (sessionCookie.startsWith(SIGNED_SESSION_TOKEN_PREFIX)) {
         const verified = verifySignedSessionToken(sessionCookie);
         if (verified) {
-          return buildSessionFromSignedPayload(verified, env.adminEmails);
+          const session = buildSessionFromSignedPayload(verified, env.adminEmails);
+          if (session && verified.rt) {
+            setServerFirebaseRefreshToken(verified.rt);
+          }
+          return session;
         }
       } else {
         const adminAuth = getAdminAuth();
@@ -183,7 +153,7 @@ export async function getServerSession(): Promise<AuthenticatedSession | null> {
     // Fallback for preview iframes / browsers blocking third-party cookies:
     // Check x-csrf-token or Authorization Bearer for a v1 server-signed session token
     const headerToken = hdrs.get(CSRF_HEADER_NAME);
-    if (headerToken && headerToken.startsWith('v1.')) {
+    if (headerToken && headerToken.startsWith(SIGNED_SESSION_TOKEN_PREFIX)) {
       const verified = verifySignedSessionToken(headerToken);
       if (verified) {
         return buildSessionFromSignedPayload(verified, env.adminEmails);
@@ -193,7 +163,7 @@ export async function getServerSession(): Promise<AuthenticatedSession | null> {
     const authHeader = hdrs.get('authorization');
     if (authHeader && authHeader.startsWith('Bearer ')) {
       const bearerToken = authHeader.slice(7).trim();
-      if (bearerToken.startsWith('v1.')) {
+      if (bearerToken.startsWith(SIGNED_SESSION_TOKEN_PREFIX)) {
         const verified = verifySignedSessionToken(bearerToken);
         if (verified) {
           return buildSessionFromSignedPayload(verified, env.adminEmails);
