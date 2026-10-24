@@ -3,7 +3,9 @@ import {
   checkRateLimit,
   getClientIpFromHeaders,
   hashClientIpDaily,
+  rateLimitResponseHeaders,
 } from '@/server/middleware/security';
+import { rejectVerifiedBot } from '@/server/middleware/botid';
 import {
   createTestimonialServer,
   listApprovedTestimonialsServer,
@@ -28,6 +30,9 @@ export async function GET() {
 }
 
 export async function POST(req: NextRequest) {
+  const botResponse = await rejectVerifiedBot();
+  if (botResponse) return botResponse;
+
   let locale: TestimonialLocale = 'ar';
   try {
     const body = (await req.json()) as Record<string, unknown>;
@@ -44,7 +49,22 @@ export async function POST(req: NextRequest) {
     // 2. Strict IP Rate Limiting: max 3 testimonials per 30 minutes per hashed IP
     const rawIp = await getClientIpFromHeaders();
     const ipHash = hashClientIpDaily(rawIp);
-    const rate = checkRateLimit(`testimonials_post:${ipHash}`, 3, 30 * 60 * 1000);
+    const rate = await checkRateLimit(
+      `testimonials_post:${ipHash}`,
+      3,
+      30 * 60 * 1000
+    );
+    if (rate.unavailable) {
+      return NextResponse.json(
+        {
+          error:
+            locale === 'ar'
+              ? 'تعذر التحقق من حد الطلبات حالياً. يرجى المحاولة لاحقاً.'
+              : 'Submissions are temporarily unavailable. Please try again later.',
+        },
+        { status: 503, headers: rateLimitResponseHeaders(rate) }
+      );
+    }
     if (!rate.allowed) {
       return NextResponse.json(
         {
@@ -53,7 +73,7 @@ export async function POST(req: NextRequest) {
               ? 'يرجى الانتظار قليلاً قبل إرسال شهادة أخرى.'
               : 'Please wait a little before submitting another review.',
         },
-        { status: 429 }
+        { status: 429, headers: rateLimitResponseHeaders(rate) }
       );
     }
 

@@ -1,6 +1,10 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { revalidatePath } from 'next/cache';
 import {
+  checkRateLimit,
+  getClientIpFromHeaders,
+  hashClientIpDaily,
+  rateLimitResponseHeaders,
   requireAdminApi,
   verifyCsrfRequest,
 } from '@/server/middleware/security';
@@ -22,6 +26,22 @@ export async function POST(req: NextRequest) {
   const csrfValid = await verifyCsrfRequest(req);
   if (!csrfValid) {
     return NextResponse.json({ error: 'رمز الحماية (CSRF) غير صالح.' }, { status: 403 });
+  }
+
+  const rawIp = await getClientIpFromHeaders();
+  const ipHash = hashClientIpDaily(rawIp);
+  const rate = await checkRateLimit(`admin_purge_confirm:${ipHash}`, 5, 15 * 60 * 1000);
+  if (rate.unavailable) {
+    return NextResponse.json(
+      { error: 'تعذر تأكيد الحذف مؤقتاً.' },
+      { status: 503, headers: rateLimitResponseHeaders(rate) }
+    );
+  }
+  if (!rate.allowed) {
+    return NextResponse.json(
+      { error: 'تجاوزت عدد محاولات التأكيد. حاول مرة أخرى لاحقاً.' },
+      { status: 429, headers: rateLimitResponseHeaders(rate) }
+    );
   }
 
   try {

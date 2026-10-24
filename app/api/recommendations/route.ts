@@ -7,6 +7,12 @@ import {
   RecommendationIntentVector,
 } from '@/server/services/recommendation.service';
 import { getFrequentlyBoughtTogether } from '@/server/services/bundleGraph.service';
+import {
+  checkRateLimit,
+  getClientIpFromHeaders,
+  hashClientIpDaily,
+  rateLimitResponseHeaders,
+} from '@/server/middleware/security';
 
 /**
  * GET /api/recommendations
@@ -96,6 +102,26 @@ export async function GET(request: NextRequest) {
  */
 export async function POST(request: NextRequest) {
   try {
+    const rawIp = await getClientIpFromHeaders();
+    const ipHash = hashClientIpDaily(rawIp);
+    const rate = await checkRateLimit(
+      `recommendations_post:${ipHash}`,
+      120,
+      60 * 1000
+    );
+    if (rate.unavailable) {
+      return NextResponse.json(
+        { error: 'Recommendations are temporarily unavailable.' },
+        { status: 503, headers: rateLimitResponseHeaders(rate) }
+      );
+    }
+    if (!rate.allowed) {
+      return NextResponse.json(
+        { error: 'Too many recommendation requests. Please try again shortly.' },
+        { status: 429, headers: rateLimitResponseHeaders(rate) }
+      );
+    }
+
     const body = await request.json().catch(() => ({}));
     const viewedProductIds: string[] = Array.isArray(body.viewedProductIds)
       ? body.viewedProductIds.filter((id: unknown): id is string => typeof id === 'string' && Boolean(id.trim()))

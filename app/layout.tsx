@@ -7,9 +7,19 @@ import { ToastProvider } from '@/components/ui/Toast';
 import { SavedProvider } from '@/features/saved/SavedProvider';
 import { CookieBanner } from '@/components/sections/CookieBanner';
 import { Analytics } from '@vercel/analytics/next';
+import { BotIdClient } from 'botid/client';
 
 const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || 'https://aqurivo.store';
 const siteUrlCom = process.env.NEXT_PUBLIC_SITE_URL_COM || 'https://aqurivo.com';
+const botProtectedRoutes = [
+  { path: '/api/contact', method: 'POST' },
+  { path: '/api/reviews', method: 'POST' },
+  { path: '/api/testimonials', method: 'POST' },
+  { path: '/api/reports', method: 'POST' },
+  { path: '/api/auth/session', method: 'POST' },
+  { path: '/api/admin/canopy/fetch-product', method: 'POST' },
+  { path: '/api/admin/upload-signature', method: 'POST' },
+];
 
 export const viewport: Viewport = {
   width: 'device-width',
@@ -182,6 +192,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
       suppressHydrationWarning
     >
       <head>
+        <BotIdClient protect={botProtectedRoutes} />
         <link rel="preconnect" href="https://fonts.googleapis.com" />
         <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
         <link

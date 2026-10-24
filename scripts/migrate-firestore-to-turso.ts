@@ -238,12 +238,35 @@ function getTursoClient(): Client {
 async function createSchema(client: Client): Promise<void> {
   const schemaPath = path.join(process.cwd(), 'database', 'schema.sql');
   const { readFileSync } = await import('fs');
-  const statements = readFileSync(schemaPath, 'utf8')
-    .split(';')
-    .map((statement) => statement.trim())
-    .filter((statement) => statement && !statement.startsWith('PRAGMA'));
+  const statements: string[] = [];
+  let current = '';
+  let inTrigger = false;
+  for (const line of readFileSync(schemaPath, 'utf8').split(/\r?\n/)) {
+    current += `${line}\n`;
+    if (!inTrigger && /^\s*CREATE\s+TRIGGER\b/i.test(current.trimStart())) {
+      inTrigger = true;
+    }
+
+    if (inTrigger) {
+      if (/^\s*END;\s*$/i.test(line)) {
+        statements.push(current.trim().replace(/;\s*$/, ''));
+        current = '';
+        inTrigger = false;
+      }
+      continue;
+    }
+
+    if (/;\s*$/.test(line)) {
+      statements.push(current.trim().replace(/;\s*$/, ''));
+      current = '';
+    }
+  }
+  if (current.trim()) statements.push(current.trim());
+
   for (const sql of statements) {
-    await client.execute(sql);
+    if (sql && !sql.startsWith('PRAGMA')) {
+      await client.execute(sql);
+    }
   }
 }
 

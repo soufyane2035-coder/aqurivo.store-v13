@@ -3,7 +3,9 @@ import {
   checkRateLimit,
   getClientIpFromHeaders,
   hashClientIpDaily,
+  rateLimitResponseHeaders,
 } from '@/server/middleware/security';
+import { rejectVerifiedBot } from '@/server/middleware/botid';
 import { createContactMessage } from '@/server/repositories/messages.repo';
 import { validateContactInput, ValidationError } from '@/server/validators';
 import {
@@ -12,18 +14,27 @@ import {
 } from '@/server/services/mailer.service';
 
 export async function POST(req: NextRequest) {
+  const botResponse = await rejectVerifiedBot();
+  if (botResponse) return botResponse;
+
   const rawIp = await getClientIpFromHeaders();
   const ipHash = hashClientIpDaily(rawIp);
 
   // Strict rate limit: max 5 contact submissions per 15 minutes per IP hash
-  const rate = checkRateLimit(`contact_form:${ipHash}`, 5, 15 * 60 * 1000);
+  const rate = await checkRateLimit(`contact_form:${ipHash}`, 5, 15 * 60 * 1000);
+  if (rate.unavailable) {
+    return NextResponse.json(
+      { error: 'Contact submissions are temporarily unavailable.' },
+      { status: 503, headers: rateLimitResponseHeaders(rate) }
+    );
+  }
   if (!rate.allowed) {
     return NextResponse.json(
       {
         error:
           'You have sent several messages recently. Please wait a few minutes before sending another.',
       },
-      { status: 429 }
+      { status: 429, headers: rateLimitResponseHeaders(rate) }
     );
   }
 

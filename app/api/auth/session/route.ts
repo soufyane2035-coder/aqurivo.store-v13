@@ -16,9 +16,11 @@ import {
   getClientIpFromHeaders,
   getServerSession,
   hashClientIpDaily,
+  rateLimitResponseHeaders,
   SESSION_COOKIE_NAME,
   verifyCsrfRequest,
 } from '@/server/middleware/security';
+import { rejectVerifiedBot } from '@/server/middleware/botid';
 import { syncUserProfileOnLogin } from '@/server/repositories/users.repo';
 
 const SESSION_DURATION_MS = 5 * 24 * 60 * 60 * 1000; // 5 days
@@ -117,6 +119,9 @@ export async function GET(req: NextRequest) {
 }
 
 export async function POST(req: NextRequest) {
+  const botResponse = await rejectVerifiedBot();
+  if (botResponse) return botResponse;
+
   if (
     loadServerEnv().sessionCookieSecret.length <
     MIN_SESSION_COOKIE_SECRET_LENGTH
@@ -130,11 +135,17 @@ export async function POST(req: NextRequest) {
   const rawIp = await getClientIpFromHeaders();
   const ipHash = hashClientIpDaily(rawIp);
 
-  const rate = checkRateLimit(`auth_login:${ipHash}`, 25, 10 * 60 * 1000);
+  const rate = await checkRateLimit(`auth_login:${ipHash}`, 25, 10 * 60 * 1000);
+  if (rate.unavailable) {
+    return NextResponse.json(
+      { error: 'Authentication is temporarily unavailable.' },
+      { status: 503, headers: rateLimitResponseHeaders(rate) }
+    );
+  }
   if (!rate.allowed) {
     return NextResponse.json(
       { error: 'Too many sign-in attempts. Please wait a few minutes and try again.' },
-      { status: 429 }
+      { status: 429, headers: rateLimitResponseHeaders(rate) }
     );
   }
 

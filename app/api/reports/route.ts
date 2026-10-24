@@ -3,9 +3,11 @@ import {
   checkRateLimit,
   getClientIpFromHeaders,
   hashClientIpDaily,
+  rateLimitResponseHeaders,
   requireAdminApi,
   verifyCsrfRequest,
 } from '@/server/middleware/security';
+import { rejectVerifiedBot } from '@/server/middleware/botid';
 import {
   countNewReportsAdmin,
   createReportServer,
@@ -18,6 +20,9 @@ import type { ReportStatus } from '@/types';
 export const dynamic = 'force-dynamic';
 
 export async function POST(req: NextRequest) {
+  const botResponse = await rejectVerifiedBot();
+  if (botResponse) return botResponse;
+
   try {
     const body = (await req.json()) as Record<string, unknown>;
 
@@ -36,7 +41,17 @@ export async function POST(req: NextRequest) {
     const rawIp = await getClientIpFromHeaders();
     const ipHash = hashClientIpDaily(rawIp);
 
-    const rate = checkRateLimit(`reports_hourly:${ipHash}`, 20, 60 * 60 * 1000);
+    const rate = await checkRateLimit(
+      `reports_hourly:${ipHash}`,
+      20,
+      60 * 60 * 1000
+    );
+    if (rate.unavailable) {
+      return NextResponse.json(
+        { error: 'تعذر التحقق من حد البلاغات حالياً. يرجى المحاولة لاحقاً.' },
+        { status: 503, headers: rateLimitResponseHeaders(rate) }
+      );
+    }
     if (!rate.allowed) {
       const isEn = body.locale === 'en';
       return NextResponse.json(
@@ -45,7 +60,7 @@ export async function POST(req: NextRequest) {
             ? 'You have reached the hourly limit of reports. Please try again later.'
             : 'لقد وصلت للحد الأقصى من البلاغات في الساعة. يرجى المحاولة لاحقاً.',
         },
-        { status: 429 }
+        { status: 429, headers: rateLimitResponseHeaders(rate) }
       );
     }
 

@@ -1,8 +1,10 @@
 import 'server-only';
 import { createHash, createHmac, randomBytes, timingSafeEqual } from 'crypto';
+import { isIP } from 'net';
 import { cookies, headers } from 'next/headers';
 import { notFound } from 'next/navigation';
 import { NextRequest, NextResponse } from 'next/server';
+import { checkTursoRateLimit } from '@/server/database/turso-rate-limit';
 import {
   getAdminAuth,
   setServerFirebaseIdToken,
@@ -282,11 +284,24 @@ export function hashClientIpDaily(rawIp: string): string {
 
 export async function getClientIpFromHeaders(): Promise<string> {
   const hdrs = await headers();
-  const forwarded = hdrs.get('x-forwarded-for');
-  if (forwarded) {
-    return forwarded.split(',')[0].trim();
+  const vercelForwarded = hdrs.get('x-vercel-forwarded-for')?.split(',')[0]?.trim();
+  if (vercelForwarded && isIP(vercelForwarded)) {
+    return vercelForwarded;
   }
-  return hdrs.get('x-real-ip') || '0.0.0.0';
+
+  const realIp = hdrs.get('x-real-ip')?.trim();
+  if (realIp && isIP(realIp)) {
+    return realIp;
+  }
+
+  if (process.env.NODE_ENV !== 'production') {
+    const localForwarded = hdrs.get('x-forwarded-for')?.split(',')[0]?.trim();
+    if (localForwarded && isIP(localForwarded)) {
+      return localForwarded;
+    }
+  }
+
+  return 'unknown';
 }
 
 const BOT_USER_AGENT_PATTERNS =
@@ -310,11 +325,28 @@ interface RateLimitBucket {
 
 const rateLimitStore = new Map<string, RateLimitBucket>();
 
-export function checkRateLimit(
+export interface RateLimitResult {
+  allowed: boolean;
+  retryAfterSeconds: number;
+  unavailable?: boolean;
+}
+
+export function rateLimitResponseHeaders(
+  result: RateLimitResult
+): Record<string, string> {
+  return {
+    'Cache-Control': 'no-store',
+    ...(result.retryAfterSeconds > 0
+      ? { 'Retry-After': String(result.retryAfterSeconds) }
+      : {}),
+  };
+}
+
+function checkInMemoryRateLimit(
   bucketKey: string,
   maxRequests: number,
   windowMs: number
-): { allowed: boolean; retryAfterSeconds: number } {
+): RateLimitResult {
   const now = Date.now();
   const cutoff = now - windowMs;
 
@@ -338,4 +370,49 @@ export function checkRateLimit(
   recent.push(now);
   rateLimitStore.set(bucketKey, { timestamps: recent });
   return { allowed: true, retryAfterSeconds: 0 };
+}
+
+export async function checkRateLimit(
+  bucketKey: string,
+  maxRequests: number,
+  windowMs: number
+): Promise<RateLimitResult> {
+  const serverStore = process.env.DATA_STORE || 'firestore';
+  const publicStore = process.env.NEXT_PUBLIC_DATA_STORE || 'firestore';
+  if (serverStore === 'turso' || publicStore === 'turso') {
+    if (serverStore !== 'turso' || publicStore !== 'turso') {
+      console.error(
+        JSON.stringify({
+          event: 'rate_limit_store_misconfigured',
+          scope: bucketKey.split(':', 1)[0],
+        })
+      );
+      return { allowed: false, retryAfterSeconds: 5, unavailable: true };
+    }
+
+    try {
+      const result = await checkTursoRateLimit(bucketKey, maxRequests, windowMs);
+      if (!result.allowed) {
+        console.warn(
+          JSON.stringify({
+            event: 'rate_limit_block',
+            scope: bucketKey.split(':', 1)[0],
+            retryAfterSeconds: result.retryAfterSeconds,
+          })
+        );
+      }
+      return result;
+    } catch (error) {
+      console.error(
+        JSON.stringify({
+          event: 'rate_limit_storage_error',
+          scope: bucketKey.split(':', 1)[0],
+          error: error instanceof Error ? error.name : 'Unknown storage error',
+        })
+      );
+      return { allowed: false, retryAfterSeconds: 5, unavailable: true };
+    }
+  }
+
+  return checkInMemoryRateLimit(bucketKey, maxRequests, windowMs);
 }

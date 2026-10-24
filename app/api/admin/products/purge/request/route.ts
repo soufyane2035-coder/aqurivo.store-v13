@@ -1,6 +1,9 @@
 import { NextRequest, NextResponse } from 'next/server';
 import {
+  checkRateLimit,
   getClientIpFromHeaders,
+  hashClientIpDaily,
+  rateLimitResponseHeaders,
   requireAdminApi,
   verifyCsrfRequest,
 } from '@/server/middleware/security';
@@ -17,6 +20,21 @@ export async function POST(req: NextRequest) {
 
   try {
     const rawIp = await getClientIpFromHeaders();
+    const ipHash = hashClientIpDaily(rawIp);
+    const rate = await checkRateLimit(`admin_purge_request:${ipHash}`, 3, 15 * 60 * 1000);
+    if (rate.unavailable) {
+      return NextResponse.json(
+        { error: 'تعذر إرسال طلب الحذف مؤقتاً.' },
+        { status: 503, headers: rateLimitResponseHeaders(rate) }
+      );
+    }
+    if (!rate.allowed) {
+      return NextResponse.json(
+        { error: 'تم إرسال عدة طلبات حذف مؤخراً. حاول مرة أخرى لاحقاً.' },
+        { status: 429, headers: rateLimitResponseHeaders(rate) }
+      );
+    }
+
     const result = await requestAllProductsPurge({
       adminEmail: guard.email || 'aqurivo@gmail.com',
       requestIp: rawIp,

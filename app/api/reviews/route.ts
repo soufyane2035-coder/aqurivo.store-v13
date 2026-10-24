@@ -3,7 +3,9 @@ import {
   checkRateLimit,
   getClientIpFromHeaders,
   hashClientIpDaily,
+  rateLimitResponseHeaders,
 } from '@/server/middleware/security';
+import { rejectVerifiedBot } from '@/server/middleware/botid';
 import {
   getReviewsByProductSlug,
   createReview,
@@ -38,6 +40,9 @@ export async function GET(req: NextRequest) {
 }
 
 export async function POST(req: NextRequest) {
+  const botResponse = await rejectVerifiedBot();
+  if (botResponse) return botResponse;
+
   try {
     const body = (await req.json()) as Record<string, unknown>;
 
@@ -52,11 +57,17 @@ export async function POST(req: NextRequest) {
     // 2. Strict IP Rate Limiting: max 5 reviews per 15 minutes per hashed IP
     const rawIp = await getClientIpFromHeaders();
     const ipHash = hashClientIpDaily(rawIp);
-    const rate = checkRateLimit(`reviews_post:${ipHash}`, 5, 15 * 60 * 1000);
+    const rate = await checkRateLimit(`reviews_post:${ipHash}`, 5, 15 * 60 * 1000);
+    if (rate.unavailable) {
+      return NextResponse.json(
+        { error: 'تعذر التحقق من حد الطلبات حالياً. يرجى المحاولة لاحقاً.' },
+        { status: 503, headers: rateLimitResponseHeaders(rate) }
+      );
+    }
     if (!rate.allowed) {
       return NextResponse.json(
         { error: 'لقد أرسلت عدة تقييمات مؤخراً. يرجى الانتظار قليلاً قبل المحاولة مجدداً.' },
-        { status: 429 }
+        { status: 429, headers: rateLimitResponseHeaders(rate) }
       );
     }
 

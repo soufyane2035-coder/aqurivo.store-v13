@@ -15,6 +15,22 @@ import { ensureTursoSchema, getTursoClient } from './turso';
 type QueryFilter = { field: string; op: string; value: unknown };
 type DbExecutor = Client | Transaction;
 
+const indexedJsonExpressions: Record<string, string> = {
+  status: "json_extract(payload_json, '$.status')",
+  slug: "json_extract(payload_json, '$.slug')",
+  approved: "json_extract(payload_json, '$.approved')",
+  isActive: "json_extract(payload_json, '$.isActive')",
+  productSlug: "json_extract(payload_json, '$.productSlug')",
+  createdAt:
+    "COALESCE(CAST(json_extract(payload_json, '$.createdAt') AS TEXT), '')",
+  lastLoginAt:
+    "COALESCE(CAST(json_extract(payload_json, '$.lastLoginAt') AS TEXT), '')",
+};
+
+function jsonFieldPath(field: string): string {
+  return `$."${field.replace(/\\/g, '\\\\').replace(/"/g, '\\"')}"`;
+}
+
 function collectionPath(name: string): string {
   const normalized = name.replace(/^\/+|\/+$/g, '');
   if (!normalized || normalized.split('/').length % 2 === 0) {
@@ -176,6 +192,9 @@ export class TursoCollectionQuery implements CloudCollectionQuery {
     if (op !== '==') {
       throw new Error(`Turso adapter does not support the Firestore operator "${op}".`);
     }
+    if (!field || field.length > 200) {
+      throw new Error('Turso adapter requires a valid Firestore query field.');
+    }
     return new TursoCollectionQuery(
       this.collectionName,
       [...this.filters, { field, op, value }],
@@ -186,6 +205,9 @@ export class TursoCollectionQuery implements CloudCollectionQuery {
   }
 
   orderBy(field: string, dir: 'asc' | 'desc' = 'asc'): TursoCollectionQuery {
+    if (!field || field.length > 200 || (dir !== 'asc' && dir !== 'desc')) {
+      throw new Error('Turso adapter requires a valid order field and direction.');
+    }
     return new TursoCollectionQuery(
       this.collectionName,
       this.filters,
@@ -196,6 +218,9 @@ export class TursoCollectionQuery implements CloudCollectionQuery {
   }
 
   limit(count: number): TursoCollectionQuery {
+    if (!Number.isSafeInteger(count) || count < 1 || count > 10_000) {
+      throw new Error('Turso query limits must be an integer between 1 and 10000.');
+    }
     return new TursoCollectionQuery(
       this.collectionName,
       this.filters,
@@ -210,14 +235,16 @@ export class TursoCollectionQuery implements CloudCollectionQuery {
     const clauses = ['collection_path = ?'];
     const args: Array<string | number | null> = [this.collectionName];
     for (const filter of this.filters) {
-      const jsonPath = `$."${filter.field.replace(/\\/g, '\\\\').replace(/"/g, '\\"')}"`;
+      const expression = indexedJsonExpressions[filter.field];
+      const jsonPath = jsonFieldPath(filter.field);
+      const fieldSql = expression || 'json_extract(payload_json, ?)';
       if (filter.value === null) {
         clauses.push(`json_type(payload_json, ?) = 'null'`);
         args.push(jsonPath);
         continue;
       }
-      clauses.push('json_extract(payload_json, ?) = ?');
-      args.push(jsonPath);
+      clauses.push(`${fieldSql} = ?`);
+      if (!expression) args.push(jsonPath);
       args.push(
         filter.value === true
           ? 1
@@ -228,12 +255,15 @@ export class TursoCollectionQuery implements CloudCollectionQuery {
               : JSON.stringify(filter.value)
       );
     }
+    const orderExpression = this.orderField
+      ? indexedJsonExpressions[this.orderField] ||
+        "COALESCE(CAST(json_extract(payload_json, ?) AS TEXT), '')"
+      : '';
     const orderSql = this.orderField
-      ? `COALESCE(CAST(json_extract(payload_json, ?) AS TEXT), '') ${this.orderDir.toUpperCase()}, document_id`
+      ? `${orderExpression} ${this.orderDir.toUpperCase()}, document_id`
       : 'document_id';
-    if (this.orderField) {
-      const jsonPath = `$."${this.orderField.replace(/\\/g, '\\\\').replace(/"/g, '\\"')}"`;
-      args.push(jsonPath);
+    if (this.orderField && !indexedJsonExpressions[this.orderField]) {
+      args.push(jsonFieldPath(this.orderField));
     }
     const limitCount =
       this.maxLimit !== null && this.maxLimit > 0 ? this.maxLimit : null;

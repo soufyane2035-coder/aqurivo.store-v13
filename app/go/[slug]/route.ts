@@ -94,7 +94,11 @@ export async function GET(
   const ipDailyHash = hashClientIpDaily(rawIp);
 
   const isBot = isKnownBotUserAgent(userAgent);
-  const rate = checkRateLimit(`outbound_click:${ipDailyHash}:${product.id}`, 5, 60 * 1000);
+  const rate = await checkRateLimit(
+    `outbound_click:${ipDailyHash}:${product.id}`,
+    5,
+    60 * 1000
+  );
 
   if (!isBot && rate.allowed) {
     const countryHeader =
