@@ -26,6 +26,7 @@ export function Button({
     styles[variant],
     styles[size],
     fullWidth ? styles.fullWidth : '',
+    variant === 'primary' ? 'aqurivoLightSweep' : '',
     className,
   ]
     .filter(Boolean)

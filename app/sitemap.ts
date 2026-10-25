@@ -3,6 +3,7 @@ import { listPublishedProducts } from '@/server/repositories/products.repo';
 import { listPublishedArticles } from '@/server/repositories/articles.repo';
 import { listActiveCategories } from '@/server/repositories/categories.repo';
 import { TOOLS_DATA } from '@/lib/tools-data';
+import { getProductVideoSources } from '@/lib/product-video';
 
 export const revalidate = 3600; // 1 hour ISR cache for search engine crawlers
 
@@ -114,6 +115,28 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     })
   );
 
+  const videoEntries: MetadataRoute.Sitemap = LOCALES.flatMap((locale) =>
+    products
+      .filter((product) => getProductVideoSources(product, locale, BASE_URL).length > 0)
+      .map((product) => {
+        const arUrl = `${BASE_URL}/ar/videos/${encodeURIComponent(product.slug)}`;
+        const enUrl = `${BASE_URL}/en/videos/${encodeURIComponent(product.slug)}`;
+        return {
+          url: locale === 'ar' ? arUrl : enUrl,
+          ...(product.updatedAt ? { lastModified: new Date(product.updatedAt) } : {}),
+          changeFrequency: 'weekly' as const,
+          priority: 0.75,
+          alternates: {
+            languages: {
+              ar: arUrl,
+              en: enUrl,
+              'x-default': enUrl,
+            },
+          },
+        };
+      })
+  );
+
   const articleEntries: MetadataRoute.Sitemap = LOCALES.flatMap((locale) =>
     articles.map((article) => {
       const encoded = encodeURIComponent(article.slug);
@@ -184,6 +207,7 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     ...transparencyEntries,
     ...categoryEntries,
     ...productEntries,
+    ...videoEntries,
     ...articleEntries,
     ...toolEntries,
   ];

@@ -63,6 +63,54 @@
   box-shadow: var(--shadow-card-hover);
 }
 
+.aqurivoLightSweep {
+  background-image: linear-gradient(
+    105deg,
+    transparent 38%,
+    rgba(255, 255, 255, 0.16) 50%,
+    transparent 62%
+  );
+  background-repeat: no-repeat;
+  background-size: 250% 100%;
+  background-position: 200% 0;
+}
+
+@media (hover: hover) and (prefers-reduced-motion: no-preference) {
+  .aqurivoLightSweep:hover:not(:disabled) {
+    animation: aqurivoLightSweepLtr 700ms var(--ease-out-quart) 1;
+  }
+  [dir='rtl'] .aqurivoLightSweep:hover:not(:disabled) {
+    animation-name: aqurivoLightSweepRtl;
+  }
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .aqurivoLightSweep:focus-visible:not(:disabled) {
+    animation: aqurivoLightSweepLtr 700ms var(--ease-out-quart) 1;
+  }
+  [dir='rtl'] .aqurivoLightSweep:focus-visible:not(:disabled) {
+    animation-name: aqurivoLightSweepRtl;
+  }
+}
+
+@keyframes aqurivoLightSweepLtr {
+  from {
+    background-position: 200% 0;
+  }
+  to {
+    background-position: -100% 0;
+  }
+}
+
+@keyframes aqurivoLightSweepRtl {
+  from {
+    background-position: -100% 0;
+  }
+  to {
+    background-position: 200% 0;
+  }
+}
+
 /* Mandatory Accessibility Fallback for Reduced Motion */
 @media (prefers-reduced-motion: reduce) {
   *,

@@ -25,6 +25,7 @@ import { SmartToolPulse } from '@/components/SmartToolPulse/SmartToolPulse';
 import { EditorialGuideIcon } from '@/components/ui/AqurivoContextIcons';
 import { getReviewsByProductSlug } from '@/server/repositories/reviews.repo';
 import { normalizeIsoCurrency, truncateSchemaName } from '@/lib/utils';
+import { getProductVideoSources } from '@/lib/product-video';
 import { ProductDwellTracker } from '@/components/ProductDetailTracker/ProductDwellTracker';
 import { SimilarProductsAdaptiveGrid } from '@/components/ProductDetailTracker/SimilarProductsAdaptiveGrid';
 import styles from './ProductPage.module.css';
@@ -662,32 +663,6 @@ export default async function ProductPage({
       : {}),
   };
 
-  // VideoObject structured data nodes when the product has videos
-  const allVideoUrls = Array.from(
-    new Set(
-      [
-        ...(Array.isArray(product.videoUrls) ? product.videoUrls : []),
-        ...(product.videoUrl ? [product.videoUrl] : []),
-      ]
-        .map((u) => (typeof u === 'string' ? u.trim() : ''))
-        .filter(Boolean)
-    )
-  );
-
-  const videoSchemaNodes = allVideoUrls.map((vUrl, idx) => ({
-    '@type': 'VideoObject',
-    name:
-      allVideoUrls.length > 1
-        ? `${name} — Video ${idx + 1}`
-        : `${name} — Product Video`,
-    description: (shortSummary || detailedDescription || name).slice(0, 155),
-    thumbnailUrl:
-      allImageUrls.length > 0 ? allImageUrls : [primaryImageUrl],
-    uploadDate: product.updatedAt || product.createdAt || new Date().toISOString(),
-    contentUrl: vUrl,
-    embedUrl: vUrl,
-  }));
-
   const breadcrumbSchemaNode = {
     '@type': 'BreadcrumbList',
     itemListElement: [
@@ -731,7 +706,6 @@ export default async function ProductPage({
       webPageSchemaNode,
       productSchemaNode,
       breadcrumbSchemaNode,
-      ...videoSchemaNodes,
     ],
   };
 
@@ -806,6 +780,14 @@ export default async function ProductPage({
               productTitle={name}
               locale={locale}
             />
+            {getProductVideoSources(product, locale, BASE_URL).length > 0 && (
+              <Link
+                href={`/${locale}/videos/${encodeURIComponent(product.slug)}`}
+                className={styles.videoWatchLink}
+              >
+                {isAr ? 'شاهد فيديو المنتج' : 'Watch the product video'}
+              </Link>
+            )}
           </div>
 
           {/* Section 2: Info & Purchase directly under image on mobile */}

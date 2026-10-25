@@ -271,10 +271,18 @@ export function HeroSection({
 
           {/* Primary & Secondary CTA Buttons */}
           <div className={styles.heroCtaWrap}>
-            <Link href={`/${locale}/products`} prefetch={true} className={styles.heroPrimaryCta}>
+            <Link
+              href={`/${locale}/products`}
+              prefetch={true}
+              className={`${styles.heroPrimaryCta} aqurivoLightSweep`}
+            >
               {messages.hero.primaryCta}
             </Link>
-            <Link href={`/${locale}/tools`} prefetch={true} className={styles.heroSecondaryCta}>
+            <Link
+              href={`/${locale}/tools`}
+              prefetch={true}
+              className={`${styles.heroSecondaryCta} aqurivoLightSweep`}
+            >
               {messages.hero.secondaryCta}
             </Link>
           </div>
@@ -287,7 +295,10 @@ export function HeroSection({
               role="search"
               autoComplete="off"
             >
-              <button type="submit" className={styles.searchSubmitBtn}>
+              <button
+                type="submit"
+                className={`${styles.searchSubmitBtn} aqurivoLightSweep`}
+              >
                 {isAr ? 'بحث' : 'Search'}
               </button>
 

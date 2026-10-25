@@ -1,0 +1,42 @@
+.page {
+  min-height: 100vh;
+  padding: 48px 20px 72px;
+  background: #0d1117;
+  color: #f9fafb;
+}
+
+.content {
+  width: min(100%, 1040px);
+  margin-inline: auto;
+}
+
+.heading {
+  margin: 0 0 12px;
+  font-size: clamp(1.7rem, 4vw, 2.5rem);
+  line-height: 1.2;
+}
+
+.description {
+  max-width: 760px;
+  margin: 0 0 24px;
+  color: #c5cbd3;
+  line-height: 1.7;
+}
+
+.player {
+  display: block;
+  width: 100%;
+  aspect-ratio: 16 / 9;
+  border: 0;
+  border-radius: 16px;
+  background: #000;
+}
+
+.productLink {
+  display: inline-block;
+  margin-top: 24px;
+  color: #5eead4;
+  font-weight: 700;
+  text-decoration: underline;
+  text-underline-offset: 4px;
+}
