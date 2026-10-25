@@ -84,6 +84,41 @@
   grid-template-columns: repeat(2, minmax(0, 1fr));
 }
 
+.keyService {
+  display: flex;
+  min-width: 0;
+  flex-direction: column;
+  align-items: stretch;
+  gap: 12px;
+  padding: 16px;
+  border: 1px solid var(--color-border-hairline);
+  border-radius: var(--radius-sm);
+  background: var(--color-bg-canvas);
+}
+
+.keyServiceHeading,
+.keyActions {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.keyServiceHeading strong {
+  color: var(--color-text-primary);
+  font-size: 14px;
+}
+
+.keyCount {
+  color: var(--color-text-muted);
+  font-size: 12px;
+}
+
+.keyActions {
+  flex-wrap: wrap;
+  margin-top: 18px;
+}
+
 .field {
   display: flex;
   min-width: 0;
@@ -131,6 +166,22 @@
 
 .modelRow > .field {
   flex: 1;
+}
+
+.modelPicker {
+  display: flex;
+  min-width: 0;
+  flex: 2;
+  align-items: flex-end;
+  gap: 10px;
+}
+
+.modelPicker > .field {
+  flex: 1;
+}
+
+.modelPicker > .secondaryButton {
+  flex-shrink: 0;
 }
 
 .primaryButton,
@@ -339,6 +390,10 @@
   font-weight: 500;
 }
 
+.keyService > .secondaryButton {
+  align-self: flex-start;
+}
+
 .removeOption input {
   width: 15px;
   min-height: 15px;
@@ -388,7 +443,8 @@
 
 @media (max-width: 640px) {
   .header,
-  .modelRow {
+  .modelRow,
+  .modelPicker {
     align-items: stretch;
     flex-direction: column;
   }
@@ -398,7 +454,8 @@
   }
 
   .header > button,
-  .modelRow > .field {
+  .modelRow > .field,
+  .modelPicker > .secondaryButton {
     width: 100%;
   }
 }

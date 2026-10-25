@@ -37,14 +37,6 @@ const SAVED_STORAGE_KEY = 'soufshop_saved_ids';
 const RECENT_STORAGE_KEY = 'soufshop_recent_ids';
 const PRICE_SNAPSHOT_KEY = 'soufshop_price_snapshots';
 const SESSION_TOKEN_STORAGE_KEY = 'soufshop_session_token';
-const DEFAULT_ADMIN_EMAILS = [
-  'aqurivo@gmail.com',
-  'contact@aqurivo.store',
-  'support@aqurivo.store',
-  'soufshop.online@gmail.com',
-  'soufyane2035@gmail.com',
-  'souftoolsai@gmail.com',
-];
 
 export function SavedProvider({ children }: { children: React.ReactNode }) {
   const [savedIds, setSavedIds] = useState<string[]>([]);
@@ -127,12 +119,8 @@ export function SavedProvider({ children }: { children: React.ReactNode }) {
 
       if (currentFirebaseUser && currentFirebaseUser.email) {
         const normalizedEmail = currentFirebaseUser.email.trim().toLowerCase();
-        const fallbackRole = DEFAULT_ADMIN_EMAILS.includes(normalizedEmail)
-          ? 'admin'
-          : 'visitor';
-
         setAuthenticatedEmail(normalizedEmail);
-        setUser({ email: normalizedEmail, role: fallbackRole });
+        setUser({ email: normalizedEmail, role: 'visitor' });
 
         try {
           const idToken = await currentFirebaseUser.getIdToken();
@@ -289,9 +277,8 @@ export function SavedProvider({ children }: { children: React.ReactNode }) {
       if (!isMounted) return;
       if (firebaseUser && firebaseUser.email) {
         const normalizedEmail = firebaseUser.email.trim().toLowerCase();
-        const role = DEFAULT_ADMIN_EMAILS.includes(normalizedEmail) ? 'admin' : 'visitor';
         setAuthenticatedEmail(normalizedEmail);
-        setUser({ email: normalizedEmail, role });
+        setUser({ email: normalizedEmail, role: 'visitor' });
         setAuthLoading(false);
         await refreshSession();
       } else {

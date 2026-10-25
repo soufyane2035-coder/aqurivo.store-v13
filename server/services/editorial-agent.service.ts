@@ -4,6 +4,13 @@ import { createCipheriv, createDecipheriv, randomBytes, createHash } from 'node:
 import { getAdminDb } from '@/server/config/firebase-admin';
 import { validatePublicHttpUrl } from '@/server/utils/public-url';
 import { fetchCanopyProductWithRotation } from './canopy.service';
+import { normalizeEditorialModels } from './editorial-agent-models';
+import {
+  nextKeyIndex,
+  normalizeStoredKeys,
+  updateStoredKeys,
+  type StoredApiKey,
+} from './editorial-agent-keyring';
 
 const SECRETS_COLLECTION = 'admin_secrets';
 const SETTINGS_ID = 'editorial_agent_settings';
@@ -11,6 +18,7 @@ const DRAFTS_COLLECTION = 'editorial_agent_drafts';
 const MAX_DRAFTS = 20;
 const MAX_SOURCE_BYTES = 150_000;
 const MAX_RESULT_BYTES = 150_000;
+const MAX_MODEL_CATALOG_BYTES = 5_000_000;
 const MAX_DRAFT_BYTES = 60_000;
 const MAX_HISTORY_MESSAGES = 4;
 const MAX_HISTORY_MESSAGE_CHARS = 4_000;
@@ -34,12 +42,14 @@ export interface EditorialDraft {
 }
 
 interface SecretConfig {
-  providerKeys: Partial<Record<EditorialProvider, string>>;
-  tavilyKey: string;
-  firecrawlKey: string;
+  providerKeys: Partial<Record<EditorialProvider, StoredApiKey[]>>;
+  tavilyKeys: StoredApiKey[];
+  firecrawlKeys: StoredApiKey[];
 }
 
 const PROVIDERS: EditorialProvider[] = ['google', 'openai', 'anthropic', 'openrouter'];
+const TOOLS = ['tavily', 'firecrawl'] as const;
+type EditorialTool = (typeof TOOLS)[number];
 
 function encryptionKey(): Buffer {
   const raw = process.env.AI_SECRETS_ENCRYPTION_KEY?.trim();
@@ -75,25 +85,33 @@ async function readSecrets(): Promise<SecretConfig> {
   const doc = await getAdminDb().collection(SECRETS_COLLECTION).doc(SETTINGS_ID).get();
   const stored = doc.data()?.encrypted;
   if (typeof stored !== 'string' || !stored) {
-    return { providerKeys: {}, tavilyKey: '', firecrawlKey: '' };
+    return { providerKeys: {}, tavilyKeys: [], firecrawlKeys: [] };
   }
   try {
-    const parsed = JSON.parse(decryptSecret(stored)) as SecretConfig;
+    const parsed = JSON.parse(decryptSecret(stored)) as Record<string, unknown>;
+    const storedProviderKeys = parsed.providerKeys && typeof parsed.providerKeys === 'object'
+      ? parsed.providerKeys as Record<string, unknown>
+      : {};
     return {
-      providerKeys: parsed.providerKeys || {},
-      tavilyKey: parsed.tavilyKey || '',
-      firecrawlKey: parsed.firecrawlKey || '',
+      providerKeys: Object.fromEntries(
+        PROVIDERS.map((provider) => [provider, normalizeStoredKeys(storedProviderKeys[provider])])
+      ),
+      tavilyKeys: normalizeStoredKeys(parsed.tavilyKeys ?? parsed.tavilyKey),
+      firecrawlKeys: normalizeStoredKeys(parsed.firecrawlKeys ?? parsed.firecrawlKey),
     };
   } catch {
     throw new Error('AI key settings could not be decrypted. Check AI_SECRETS_ENCRYPTION_KEY.');
   }
 }
 
+function getKeyReferences(keys: StoredApiKey[]): Array<{ id: string }> {
+  return keys.map(({ id }) => ({ id }));
+}
+
 export async function getEditorialKeyStatus(): Promise<{
   encryptionConfigured: boolean;
-  providers: Record<EditorialProvider, boolean>;
-  tavily: boolean;
-  firecrawl: boolean;
+  providers: Record<EditorialProvider, Array<{ id: string }>>;
+  tools: Record<EditorialTool, Array<{ id: string }>>;
 }> {
   let encryptionConfigured = true;
   try {
@@ -104,53 +122,86 @@ export async function getEditorialKeyStatus(): Promise<{
   if (!encryptionConfigured) {
     return {
       encryptionConfigured,
-      providers: { google: false, openai: false, anthropic: false, openrouter: false },
-      tavily: false,
-      firecrawl: false,
+      providers: { google: [], openai: [], anthropic: [], openrouter: [] },
+      tools: { tavily: [], firecrawl: [] },
     };
   }
   const secrets = await readSecrets();
   return {
     encryptionConfigured,
     providers: {
-      google: Boolean(secrets.providerKeys.google),
-      openai: Boolean(secrets.providerKeys.openai),
-      anthropic: Boolean(secrets.providerKeys.anthropic),
-      openrouter: Boolean(secrets.providerKeys.openrouter),
+      google: getKeyReferences(secrets.providerKeys.google || []),
+      openai: getKeyReferences(secrets.providerKeys.openai || []),
+      anthropic: getKeyReferences(secrets.providerKeys.anthropic || []),
+      openrouter: getKeyReferences(secrets.providerKeys.openrouter || []),
     },
-    tavily: Boolean(secrets.tavilyKey),
-    firecrawl: Boolean(secrets.firecrawlKey),
+    tools: {
+      tavily: getKeyReferences(secrets.tavilyKeys),
+      firecrawl: getKeyReferences(secrets.firecrawlKeys),
+    },
   };
 }
 
+export async function listEditorialModels(
+  providerValue: unknown,
+  keyId: unknown
+): Promise<string[]> {
+  const provider = validateProvider(providerValue);
+  if (typeof keyId !== 'string' || !/^[A-Za-z0-9_-]{1,128}$/.test(keyId)) {
+    throw new Error('Choose a saved API key to fetch models.');
+  }
+  const keys = (await readSecrets()).providerKeys[provider] || [];
+  const selectedKey = keys.find((key) => key.id === keyId);
+  if (!selectedKey) throw new Error('The selected API key is no longer available. Refresh the key settings.');
+
+  let url = '';
+  const headers: Record<string, string> = {};
+  if (provider === 'google') {
+    url = 'https://generativelanguage.googleapis.com/v1beta/models';
+    headers['x-goog-api-key'] = selectedKey.value;
+  } else if (provider === 'anthropic') {
+    url = 'https://api.anthropic.com/v1/models?limit=1000';
+    headers['x-api-key'] = selectedKey.value;
+    headers['anthropic-version'] = '2023-06-01';
+  } else {
+    url = provider === 'openrouter'
+      ? 'https://openrouter.ai/api/v1/models'
+      : 'https://api.openai.com/v1/models';
+    headers.Authorization = `Bearer ${selectedKey.value}`;
+  }
+  const response = await fetchBounded(url, {
+    method: 'GET',
+    headers,
+  }, REQUEST_TIMEOUT_MS, MAX_MODEL_CATALOG_BYTES);
+  const models = normalizeEditorialModels(
+    provider,
+    await responseJson(response, MAX_MODEL_CATALOG_BYTES)
+  );
+  if (!models.length) {
+    throw new Error('No compatible text-generation models were returned for this provider.');
+  }
+  return models;
+}
+
 export async function saveEditorialKeys(input: {
-  providerKeys: Partial<Record<EditorialProvider, string>>;
-  tavilyKey?: string;
-  firecrawlKey?: string;
+  providerKeys: Partial<Record<EditorialProvider, string[]>>;
+  toolKeys: Partial<Record<EditorialTool, string[]>>;
   remove?: string[];
 }): Promise<void> {
   encryptionKey();
   const previous = await readSecrets();
-  const providerKeys = { ...previous.providerKeys };
-  for (const provider of PROVIDERS) {
-    const rawValue: unknown = input.providerKeys[provider];
-    if (rawValue !== undefined && typeof rawValue !== 'string') {
-      throw new Error('Invalid API key input.');
-    }
-    const value = typeof rawValue === 'string' ? rawValue.trim() : '';
-    if (value && value.length > 4_000) {
-      throw new Error('API keys must be no longer than 4,000 characters.');
-    }
-    if (value) providerKeys[provider] = value;
-    if (input.remove?.includes(provider)) delete providerKeys[provider];
-  }
+  const remove = new Set(input.remove || []);
+  const providerKeys = Object.fromEntries(
+    PROVIDERS.map((provider) => [
+      provider,
+      updateStoredKeys(previous.providerKeys[provider] || [], input.providerKeys[provider], provider, remove),
+    ])
+  ) as SecretConfig['providerKeys'];
   const next: SecretConfig = {
     providerKeys,
-    tavilyKey: cleanSecret(input.tavilyKey, previous.tavilyKey),
-    firecrawlKey: cleanSecret(input.firecrawlKey, previous.firecrawlKey),
+    tavilyKeys: updateStoredKeys(previous.tavilyKeys, input.toolKeys.tavily, 'tavily', remove),
+    firecrawlKeys: updateStoredKeys(previous.firecrawlKeys, input.toolKeys.firecrawl, 'firecrawl', remove),
   };
-  if (input.remove?.includes('tavily')) next.tavilyKey = '';
-  if (input.remove?.includes('firecrawl')) next.firecrawlKey = '';
   const encrypted = encryptSecret(JSON.stringify(next));
   await getAdminDb().collection(SECRETS_COLLECTION).doc(SETTINGS_ID).set({
     encrypted,
@@ -158,14 +209,35 @@ export async function saveEditorialKeys(input: {
   });
 }
 
-function cleanSecret(value: string | undefined, previous: string): string {
-  if (typeof value !== 'string') return previous;
-  const trimmed = value.trim();
-  if (trimmed.length > 4_000) throw new Error('API keys must be no longer than 4,000 characters.');
-  return trimmed || previous;
+async function fetchWithKeyRotation(
+  service: string,
+  keys: StoredApiKey[],
+  authHeader: string,
+  authPrefix: string,
+  createRequest: () => { url: string; init: RequestInit }
+): Promise<Response> {
+  if (!keys.length) throw new Error(`Configure a ${service} API key before continuing.`);
+  const startIndex = nextKeyIndex(service, keys.length);
+  for (let attempt = 0; attempt < keys.length; attempt += 1) {
+    const key = keys[(startIndex + attempt) % keys.length];
+    const request = createRequest();
+    const headers = new Headers(request.init.headers);
+    headers.set(authHeader, `${authPrefix}${key.value}`);
+    const response = await fetchBounded(request.url, { ...request.init, headers });
+    if (![401, 403, 429].includes(response.status) || attempt === keys.length - 1) {
+      return response;
+    }
+    await response.body?.cancel();
+  }
+  throw new Error(`All configured ${service} API keys were rejected.`);
 }
 
-async function fetchBounded(url: string, init: RequestInit, timeout = REQUEST_TIMEOUT_MS): Promise<Response> {
+async function fetchBounded(
+  url: string,
+  init: RequestInit,
+  timeout = REQUEST_TIMEOUT_MS,
+  maxBytes = MAX_SOURCE_BYTES
+): Promise<Response> {
   const controller = new AbortController();
   const timer = setTimeout(() => controller.abort(), timeout);
   try {
@@ -176,7 +248,7 @@ async function fetchBounded(url: string, init: RequestInit, timeout = REQUEST_TI
       cache: 'no-store',
     });
     const length = Number(response.headers.get('content-length') || 0);
-    if (length > MAX_SOURCE_BYTES) {
+    if (length > maxBytes) {
       await response.body?.cancel();
       throw new Error('The research source exceeded the allowed size.');
     }
@@ -186,10 +258,13 @@ async function fetchBounded(url: string, init: RequestInit, timeout = REQUEST_TI
   }
 }
 
-async function responseJson(response: Response): Promise<Record<string, unknown>> {
+async function responseJson(
+  response: Response,
+  maxBytes = MAX_RESULT_BYTES
+): Promise<Record<string, unknown>> {
   if (!response.ok) {
     await response.body?.cancel();
-    throw new Error('A research service request failed. Check its key and try again.');
+    throw new Error('A provider or research-tool request failed. Check its API key and try again.');
   }
   const reader = response.body?.getReader();
   if (!reader) throw new Error('A research service returned an empty response.');
@@ -205,7 +280,7 @@ async function responseJson(response: Response): Promise<Record<string, unknown>
       const { done, value } = await reader.read();
       if (done) break;
       size += value.byteLength;
-      if (size > MAX_RESULT_BYTES) {
+      if (size > maxBytes) {
         await reader.cancel();
         throw new Error('A research response exceeded the allowed size.');
       }
@@ -224,14 +299,23 @@ function stringOrEmpty(value: unknown): string {
 }
 
 async function research(url: string, secrets: SecretConfig): Promise<string> {
-  if (!secrets.tavilyKey || !secrets.firecrawlKey) {
+  if (!secrets.tavilyKeys.length || !secrets.firecrawlKeys.length) {
     throw new Error('Configure both Tavily Web Search and Firecrawl keys before creating drafts.');
   }
-  const scrapeResponse = await fetchBounded('https://api.firecrawl.dev/v1/scrape', {
-    method: 'POST',
-    headers: { Authorization: `Bearer ${secrets.firecrawlKey}`, 'Content-Type': 'application/json' },
-    body: JSON.stringify({ url, formats: ['markdown'], onlyMainContent: true }),
-  });
+  const scrapeResponse = await fetchWithKeyRotation(
+    'firecrawl',
+    secrets.firecrawlKeys,
+    'Authorization',
+    'Bearer ',
+    () => ({
+      url: 'https://api.firecrawl.dev/v1/scrape',
+      init: {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ url, formats: ['markdown'], onlyMainContent: true }),
+      },
+    }),
+  );
   const scrape = await responseJson(scrapeResponse);
   const scrapeData = (scrape.data && typeof scrape.data === 'object' ? scrape.data : scrape) as Record<string, unknown>;
   const markdown = stringOrEmpty(scrapeData.markdown);
@@ -244,16 +328,25 @@ async function research(url: string, secrets: SecretConfig): Promise<string> {
     stringOrEmpty(metadata.title).trim() ||
     markdown.match(/^#\s+(.+)$/m)?.[1]?.trim() ||
     new URL(url).hostname;
-  const searchResponse = await fetchBounded('https://api.tavily.com/search', {
-    method: 'POST',
-    headers: { Authorization: `Bearer ${secrets.tavilyKey}`, 'Content-Type': 'application/json' },
-    body: JSON.stringify({
-      query: `"${pageTitle}" independent review specifications pros cons`,
-      topic: 'general',
-      search_depth: 'advanced',
-      max_results: 5,
+  const searchResponse = await fetchWithKeyRotation(
+    'tavily',
+    secrets.tavilyKeys,
+    'Authorization',
+    'Bearer ',
+    () => ({
+      url: 'https://api.tavily.com/search',
+      init: {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          query: `"${pageTitle}" independent review specifications pros cons`,
+          topic: 'general',
+          search_depth: 'advanced',
+          max_results: 5,
+        }),
+      },
     }),
-  });
+  );
   const search = await responseJson(searchResponse);
   const results = Array.isArray(search.results) ? search.results.slice(0, 5) : [];
   const searchText = results.map((item) => {
@@ -304,42 +397,58 @@ function buildPrompt(kind: EditorialDraftKind, url: string, sources: string, fee
   ].filter(Boolean).join('\n\n');
 }
 
-async function generate(provider: EditorialProvider, model: string, prompt: string, apiKey: string): Promise<string> {
-  const response = provider === 'google'
-    ? await fetchBounded(`https://generativelanguage.googleapis.com/v1beta/models/${encodeURIComponent(model)}:generateContent`, {
-      method: 'POST',
-      headers: { 'x-goog-api-key': apiKey, 'Content-Type': 'application/json' },
-      body: JSON.stringify({ contents: [{ parts: [{ text: prompt }] }], generationConfig: { maxOutputTokens: 3000, temperature: 0.3 } }),
-    })
-    : provider === 'anthropic'
-      ? await fetchBounded('https://api.anthropic.com/v1/messages', {
-        method: 'POST',
-        headers: { 'x-api-key': apiKey, 'anthropic-version': '2023-06-01', 'Content-Type': 'application/json' },
-        body: JSON.stringify({ model, max_tokens: 3000, temperature: 0.3, messages: [{ role: 'user', content: prompt }] }),
-      })
-      : await fetchBounded(provider === 'openrouter' ? 'https://openrouter.ai/api/v1/chat/completions' : 'https://api.openai.com/v1/chat/completions', {
-        method: 'POST',
-        headers: { Authorization: `Bearer ${apiKey}`, 'Content-Type': 'application/json' },
-        body: JSON.stringify({ model, temperature: 0.3, max_tokens: 3000, messages: [{ role: 'user', content: prompt }] }),
-      });
-  const data = await responseJson(response);
-  let content = '';
-  if (provider === 'google') {
-    const candidates = Array.isArray(data.candidates) ? data.candidates : [];
-    const parts = (candidates[0] as { content?: { parts?: Array<{ text?: string }> } } | undefined)?.content?.parts || [];
-    content = parts.map((part) => part.text || '').join('\n');
-  } else if (provider === 'anthropic') {
-    const blocks = Array.isArray(data.content) ? data.content : [];
-    content = blocks.map((block) => (block as { type?: string; text?: string }).type === 'text' ? (block as { text?: string }).text || '' : '').join('\n');
-  } else {
-    const choices = Array.isArray(data.choices) ? data.choices : [];
-    content = stringOrEmpty((choices[0] as { message?: { content?: unknown } } | undefined)?.message?.content);
-  }
-  const clean = content.trim().slice(0, 20_000);
-  if (!clean) throw new Error('The selected model returned no draft. Check the provider and model settings.');
-  return clean;
-}
+async function generate(
+  provider: EditorialProvider,
+  model: string,
+  prompt: string,
+  apiKeys: StoredApiKey[]
+): Promise<string> {
+  if (!apiKeys.length) throw new Error(`Save a ${provider} API key before using this model.`);
+  const startIndex = nextKeyIndex(`model:${provider}`, apiKeys.length);
 
+  for (let attempt = 0; attempt < apiKeys.length; attempt += 1) {
+    const apiKey = apiKeys[(startIndex + attempt) % apiKeys.length].value;
+    const response = provider === 'google'
+      ? await fetchBounded(`https://generativelanguage.googleapis.com/v1beta/models/${encodeURIComponent(model)}:generateContent`, {
+          method: 'POST',
+          headers: { 'x-goog-api-key': apiKey, 'Content-Type': 'application/json' },
+          body: JSON.stringify({ contents: [{ parts: [{ text: prompt }] }], generationConfig: { maxOutputTokens: 3000, temperature: 0.3 } }),
+        })
+      : provider === 'anthropic'
+        ? await fetchBounded('https://api.anthropic.com/v1/messages', {
+            method: 'POST',
+            headers: { 'x-api-key': apiKey, 'anthropic-version': '2023-06-01', 'Content-Type': 'application/json' },
+            body: JSON.stringify({ model, max_tokens: 3000, temperature: 0.3, messages: [{ role: 'user', content: prompt }] }),
+          })
+        : await fetchBounded(provider === 'openrouter' ? 'https://openrouter.ai/api/v1/chat/completions' : 'https://api.openai.com/v1/chat/completions', {
+            method: 'POST',
+            headers: { Authorization: `Bearer ${apiKey}`, 'Content-Type': 'application/json' },
+            body: JSON.stringify({ model, temperature: 0.3, max_tokens: 3000, messages: [{ role: 'user', content: prompt }] }),
+          });
+
+    if ([401, 403, 429].includes(response.status) && attempt < apiKeys.length - 1) {
+      await response.body?.cancel();
+      continue;
+    }
+    const data = await responseJson(response);
+    let content = '';
+    if (provider === 'google') {
+      const candidates = Array.isArray(data.candidates) ? data.candidates : [];
+      const parts = (candidates[0] as { content?: { parts?: Array<{ text?: string }> } } | undefined)?.content?.parts || [];
+      content = parts.map((part) => part.text || '').join('\n');
+    } else if (provider === 'anthropic') {
+      const blocks = Array.isArray(data.content) ? data.content : [];
+      content = blocks.map((block) => (block as { type?: string; text?: string }).type === 'text' ? (block as { text?: string }).text || '' : '').join('\n');
+    } else {
+      const choices = Array.isArray(data.choices) ? data.choices : [];
+      content = stringOrEmpty((choices[0] as { message?: { content?: unknown } } | undefined)?.message?.content);
+    }
+    const clean = content.trim().slice(0, 20_000);
+    if (!clean) throw new Error('The selected model returned no draft. Check the provider and model settings.');
+    return clean;
+  }
+  throw new Error(`All configured ${provider} API keys were rejected.`);
+}
 function validateProvider(provider: unknown): EditorialProvider {
   if (typeof provider === 'string' && PROVIDERS.includes(provider as EditorialProvider)) return provider as EditorialProvider;
   throw new Error('Choose a supported AI provider.');
@@ -366,10 +475,10 @@ export async function createEditorialDraft(input: {
   const model = validateModel(input.model);
   const prompt = input.prompt?.trim().slice(0, 2_000);
   const secrets = await readSecrets();
-  const apiKey = secrets.providerKeys[provider];
-  if (!apiKey) throw new Error(`Save a ${provider} API key before using this model.`);
+  const apiKeys = secrets.providerKeys[provider] || [];
+  if (!apiKeys.length) throw new Error(`Save a ${provider} API key before using this model.`);
   const sources = await research(sourceUrl, secrets);
-  const content = await generate(provider, model, buildPrompt(kind, sourceUrl, sources, prompt), apiKey);
+  const content = await generate(provider, model, buildPrompt(kind, sourceUrl, sources, prompt), apiKeys);
   const now = new Date().toISOString();
   const doc = await getAdminDb().collection(DRAFTS_COLLECTION).add({
     kind,
@@ -402,12 +511,12 @@ export async function reviseEditorialDraft(id: string, feedback: string, provide
   const data = snapshot.data();
   if (!data) throw new Error('Draft not found.');
   const secrets = await readSecrets();
-  const apiKey = secrets.providerKeys[provider];
-  if (!apiKey) throw new Error(`Save a ${provider} API key before using this model.`);
+  const apiKeys = secrets.providerKeys[provider] || [];
+  if (!apiKeys.length) throw new Error(`Save a ${provider} API key before using this model.`);
   const current = data as unknown as EditorialDraft;
   const sourceUrl = await validatePublicHttpUrl(current.sourceUrl);
   const sources = await research(sourceUrl, secrets);
-  const content = await generate(provider, model, buildPrompt(current.kind, sourceUrl, sources, `${cleanedFeedback}\n\nPrevious draft:\n${current.content}`), apiKey);
+  const content = await generate(provider, model, buildPrompt(current.kind, sourceUrl, sources, `${cleanedFeedback}\n\nPrevious draft:\n${current.content}`), apiKeys);
   const now = new Date().toISOString();
   const conversation = normalizeConversation([...(Array.isArray(current.conversation) ? current.conversation : []),
     { role: 'admin' as const, text: cleanedFeedback, at: now },

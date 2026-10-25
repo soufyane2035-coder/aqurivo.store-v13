@@ -13,6 +13,7 @@ import {
   FolderTree,
   Globe,
   Inbox,
+  KeyRound,
   LayoutDashboard,
   Menu,
   Moon,
@@ -181,6 +182,12 @@ export function AdminShell({
       href: '/admin/editorial-agent',
       label: isAr ? 'مساعد المحتوى' : 'Editorial Agent',
       icon: Bot,
+      exact: true,
+    },
+    {
+      href: '/admin/editorial-agent/keys',
+      label: isAr ? 'مفاتيح الذكاء الاصطناعي' : 'AI Provider Keys',
+      icon: KeyRound,
     },
     {
       href: '/admin/reports',

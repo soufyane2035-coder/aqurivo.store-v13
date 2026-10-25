@@ -4,6 +4,7 @@ import {
   createEditorialDraft,
   getEditorialKeyStatus,
   listEditorialDrafts,
+  listEditorialModels,
   markEditorialDraftReviewed,
   reviseEditorialDraft,
   saveEditorialKeys,
@@ -18,15 +19,13 @@ function json(data: unknown, status = 200) {
   });
 }
 
-export async function GET() {
+export async function GET(req: NextRequest) {
   const guard = await requireAdminApi();
   if (!guard.authorized) return guard.response;
   try {
-    const [drafts, keyStatus] = await Promise.all([
-      listEditorialDrafts(),
-      getEditorialKeyStatus(),
-    ]);
-    return json({ drafts, keyStatus });
+    const keyStatus = await getEditorialKeyStatus();
+    if (req.nextUrl.searchParams.get('keys') === '1') return json({ keyStatus });
+    return json({ drafts: await listEditorialDrafts(), keyStatus });
   } catch {
     return json({ error: 'Unable to load editorial drafts and key status.' }, 500);
   }
@@ -47,8 +46,10 @@ export async function POST(req: NextRequest) {
       return json({ error: 'Request body is too large.' }, 413);
     }
     const body = JSON.parse(raw) as Record<string, unknown>;
-    if (body.action === 'create' || body.action === 'revise') {
-      const rate = await checkRateLimit(`editorial_agent:${guard.session.uid}`, 20, 60 * 60 * 1000);
+    if (body.action === 'create' || body.action === 'revise' || body.action === 'list_models') {
+      const maxRequests = body.action === 'list_models' ? 40 : 20;
+      const scope = body.action === 'list_models' ? 'editorial_agent_models' : 'editorial_agent';
+      const rate = await checkRateLimit(`${scope}:${guard.session.uid}`, maxRequests, 60 * 60 * 1000);
       if (rate.unavailable) return json({ error: 'Editorial tools are temporarily unavailable.' }, 503);
       if (!rate.allowed) return json({ error: 'Too many research requests. Try again later.' }, 429);
     }
@@ -56,17 +57,25 @@ export async function POST(req: NextRequest) {
     if (body.action === 'save_keys') {
       const providerKeys =
         body.providerKeys && typeof body.providerKeys === 'object'
-          ? body.providerKeys as Record<string, string>
+          ? body.providerKeys as Record<string, string[]>
+          : {};
+      const toolKeys =
+        body.toolKeys && typeof body.toolKeys === 'object'
+          ? body.toolKeys as Record<string, string[]>
           : {};
       await saveEditorialKeys({
         providerKeys,
-        tavilyKey: typeof body.tavilyKey === 'string' ? body.tavilyKey : undefined,
-        firecrawlKey: typeof body.firecrawlKey === 'string' ? body.firecrawlKey : undefined,
+        toolKeys,
         remove: Array.isArray(body.remove)
-          ? body.remove.filter((item): item is string => typeof item === 'string').slice(0, 6)
+          ? body.remove.filter((item): item is string => typeof item === 'string').slice(0, 60)
           : [],
       });
       return json({ keyStatus: await getEditorialKeyStatus() });
+    }
+
+    if (body.action === 'list_models') {
+      const models = await listEditorialModels(body.provider, body.keyId);
+      return json({ models });
     }
 
     if (body.action === 'create') {

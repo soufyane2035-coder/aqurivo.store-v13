@@ -22,7 +22,8 @@ export async function syncUserProfileOnLogin(params: {
   const db = getAdminDb();
   const env = loadServerEnv();
   const normalizedEmail = params.email.trim().toLowerCase();
-  const isAdmin = env.adminEmails.includes(normalizedEmail);
+  const isAdmin =
+    params.emailVerified && env.adminEmails.includes(normalizedEmail);
   const role: 'admin' | 'visitor' = isAdmin ? 'admin' : 'visitor';
   const now = new Date().toISOString();
 
