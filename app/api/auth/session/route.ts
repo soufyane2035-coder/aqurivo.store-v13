@@ -68,10 +68,12 @@ async function verifyIdTokenViaFirebaseRest(idToken: string): Promise<{
 function getCookieOptions(req: NextRequest, httpOnly: boolean, maxAgeSeconds: number) {
   const proto = req.headers.get('x-forwarded-proto') || req.nextUrl.protocol;
   const isHttps = proto.includes('https');
+  const hostname = req.nextUrl.hostname.toLowerCase().replace(/^\[|\]$/g, '');
+  const isLocalhost = hostname === 'localhost' || hostname === '127.0.0.1' || hostname === '::1';
 
   return {
     httpOnly,
-    secure: isHttps || process.env.NODE_ENV === 'production',
+    secure: isHttps || (process.env.NODE_ENV === 'production' && !isLocalhost),
     sameSite: (isHttps ? 'none' : 'lax') as 'none' | 'lax',
     path: '/',
     maxAge: maxAgeSeconds,

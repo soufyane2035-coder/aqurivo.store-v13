@@ -7,6 +7,7 @@ import {
   ArrowLeft,
   ArrowRight,
   BarChart3,
+  Bot,
   FileText,
   Flag,
   FolderTree,
@@ -175,6 +176,11 @@ export function AdminShell({
       href: '/admin/articles',
       label: isAr ? 'أدلة الشراء' : 'Buying Guides',
       icon: FileText,
+    },
+    {
+      href: '/admin/editorial-agent',
+      label: isAr ? 'مساعد المحتوى' : 'Editorial Agent',
+      icon: Bot,
     },
     {
       href: '/admin/reports',

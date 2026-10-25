@@ -37,6 +37,21 @@ interface AuthFormViewProps {
   mode: 'login' | 'register';
 }
 
+const AUTH_OPERATION_TIMEOUT_MS = 20_000;
+
+function withAuthTimeout<T>(operation: Promise<T>): Promise<T> {
+  let timeoutId: ReturnType<typeof setTimeout> | undefined;
+  const timeout = new Promise<never>((_, reject) => {
+    timeoutId = setTimeout(() => {
+      reject(Object.assign(new Error('Authentication request timed out.'), { code: 'auth/timeout' }));
+    }, AUTH_OPERATION_TIMEOUT_MS);
+  });
+
+  return Promise.race([operation, timeout]).finally(() => {
+    if (timeoutId) clearTimeout(timeoutId);
+  });
+}
+
 function GoogleIcon() {
   return (
     <svg
@@ -79,6 +94,7 @@ export function AuthFormView({ mode }: AuthFormViewProps) {
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [errorMessage, setErrorMessage] = useState('');
   const [sessionExchangeFailed, setSessionExchangeFailed] = useState(false);
+  const [adminAccessDenied, setAdminAccessDenied] = useState(false);
   const [infoMessage, setInfoMessage] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isResettingPassword, setIsResettingPassword] = useState(false);
@@ -90,22 +106,41 @@ export function AuthFormView({ mode }: AuthFormViewProps) {
 
   const clientReady = isFirebaseClientConfigured();
 
-  const getRedirectDestination = () => {
+  const isAdminDestinationRequested = () => {
     if (typeof window !== 'undefined') {
       const params = new URLSearchParams(window.location.search);
       const nextPath = params.get('next');
-      if (nextPath && nextPath.startsWith('/') && !nextPath.startsWith('//')) {
-        return nextPath;
-      }
+      return Boolean(
+        nextPath &&
+          nextPath.startsWith('/') &&
+          !nextPath.startsWith('//') &&
+          (nextPath === '/admin' || nextPath.startsWith('/admin/'))
+      );
     }
-    return '/';
+    return false;
   };
 
   useEffect(() => {
-    if (user && !isSubmitting && !sessionExchangeFailed) {
-      router.replace(getRedirectDestination());
+    if (!user || isSubmitting || sessionExchangeFailed || adminAccessDenied) return;
+    if (isAdminDestinationRequested() && user.role !== 'admin') {
+      setAdminAccessDenied(true);
+      setErrorMessage(
+        isAr
+          ? 'تم تسجيل الدخول، لكن هذا الحساب غير مخوّل للإدارة. استخدم بريد المسؤول الموثّق أو أضف البريد الموثّق الصحيح إلى إعداد ADMIN_EMAILS.'
+          : 'You are signed in, but this account is not authorized to administer the site. Use the verified admin email or add the verified email to ADMIN_EMAILS.'
+      );
+      return;
     }
-  }, [user, isSubmitting, sessionExchangeFailed, router]);
+    const params = new URLSearchParams(window.location.search);
+    const nextPath = params.get('next');
+    const destination =
+      nextPath && nextPath.startsWith('/') && !nextPath.startsWith('//')
+        ? nextPath
+        : user.role === 'admin'
+          ? '/admin'
+          : '/';
+    router.replace(destination);
+  }, [user, isSubmitting, sessionExchangeFailed, adminAccessDenied, isAr, router]);
 
   // Compute password strength for registration
   const passwordStrength = React.useMemo(() => {
@@ -125,15 +160,19 @@ export function AuthFormView({ mode }: AuthFormViewProps) {
   const strengthColors = ['#ef4444', '#f59e0b', '#3b82f6', '#10b981'];
 
   const exchangeTokenForSession = async (idToken: string, refreshToken?: string) => {
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), AUTH_OPERATION_TIMEOUT_MS);
     try {
       const res = await fetch('/api/auth/session', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ idToken, refreshToken, rememberMe }),
+        signal: controller.signal,
       });
       const data = (await res.json()) as {
         authenticated?: boolean;
         csrfToken?: string;
+        user?: { role?: 'admin' | 'visitor' };
       };
       if (!res.ok || !data.authenticated || !data.csrfToken) {
         throw new Error('Server session could not be created.');
@@ -146,13 +185,31 @@ export function AuthFormView({ mode }: AuthFormViewProps) {
       }
 
       setSessionExchangeFailed(false);
-      await refreshSession();
-      router.replace(getRedirectDestination());
+      await withAuthTimeout(refreshSession());
+      if (isAdminDestinationRequested() && data.user?.role !== 'admin') {
+        setAdminAccessDenied(true);
+        setErrorMessage(
+          isAr
+            ? 'تم تسجيل الدخول، لكن هذا الحساب غير مخوّل للإدارة. استخدم بريد المسؤول الموثّق أو أضف البريد الموثّق الصحيح إلى إعداد ADMIN_EMAILS.'
+            : 'You are signed in, but this account is not authorized to administer the site. Use the verified admin email or add the verified email to ADMIN_EMAILS.'
+        );
+        return;
+      }
+
+      const params = new URLSearchParams(window.location.search);
+      const nextPath = params.get('next');
+      const destination =
+        nextPath && nextPath.startsWith('/') && !nextPath.startsWith('//')
+          ? nextPath
+          : data.user?.role === 'admin'
+            ? '/admin'
+            : '/';
+      router.replace(destination);
     } catch {
       setSessionExchangeFailed(true);
       try {
         const auth = getFirebaseClientAuth();
-        if (auth) await signOut(auth);
+        if (auth) await withAuthTimeout(signOut(auth));
       } catch (signOutError) {
         console.error('Unable to clear Firebase client state after session failure.', signOutError);
       }
@@ -161,12 +218,14 @@ export function AuthFormView({ mode }: AuthFormViewProps) {
       } catch {
         // Ignore sessionStorage errors.
       }
-      await refreshSession();
+      await withAuthTimeout(refreshSession()).catch(() => undefined);
       setErrorMessage(
         isAr
           ? 'تعذر إنشاء جلسة آمنة. لم يكتمل تسجيل الدخول؛ يرجى المحاولة مرة أخرى.'
           : 'A secure session could not be created. Sign-in was not completed; please try again.'
       );
+    } finally {
+      clearTimeout(timeoutId);
     }
   };
 
@@ -215,6 +274,7 @@ export function AuthFormView({ mode }: AuthFormViewProps) {
     setErrorMessage('');
     setInfoMessage('');
     setSessionExchangeFailed(false);
+    setAdminAccessDenied(false);
 
     if (mode === 'register') {
       if (password !== confirmPassword) {
@@ -251,14 +311,38 @@ export function AuthFormView({ mode }: AuthFormViewProps) {
     try {
       const credential =
         mode === 'register'
-          ? await createUserWithEmailAndPassword(auth, email.trim(), password)
-          : await signInWithEmailAndPassword(auth, email.trim(), password);
-      const idToken = await credential.user.getIdToken();
+          ? await withAuthTimeout(createUserWithEmailAndPassword(auth, email.trim(), password))
+          : await withAuthTimeout(signInWithEmailAndPassword(auth, email.trim(), password));
+      const idToken = await withAuthTimeout(credential.user.getIdToken());
       await exchangeTokenForSession(idToken, credential.user.refreshToken);
     } catch (err) {
       const code =
         err && typeof err === 'object' && 'code' in err ? String(err.code) : '';
-      if (code === 'auth/email-already-in-use') {
+      if (code === 'auth/timeout') {
+        setErrorMessage(
+          isAr
+            ? 'استغرق اتصال تسجيل الدخول وقتاً طويلاً ولم يكتمل. تحقق من اتصال الإنترنت أو حجب Firebase، ثم حاول مجدداً.'
+            : 'Sign-in timed out before Firebase responded. Check your connection or Firebase access, then try again.'
+        );
+      } else if (code === 'auth/network-request-failed') {
+        setErrorMessage(
+          isAr
+            ? 'تعذر الاتصال بخدمة Firebase. تحقق من الشبكة أو مانع الإعلانات/جدار الحماية ثم حاول مجدداً.'
+            : 'Could not reach Firebase. Check your network, ad blocker, or firewall and try again.'
+        );
+      } else if (code === 'auth/invalid-api-key') {
+        setErrorMessage(
+          isAr
+            ? 'مفتاح Firebase Web API غير صالح. راجع NEXT_PUBLIC_FIREBASE_API_KEY في إعدادات الموقع.'
+            : 'The Firebase Web API key is invalid. Check NEXT_PUBLIC_FIREBASE_API_KEY in the site environment.'
+        );
+      } else if (code === 'auth/operation-not-allowed') {
+        setErrorMessage(
+          isAr
+            ? 'تسجيل الدخول بالبريد وكلمة المرور غير مفعّل في Firebase Authentication.'
+            : 'Email/password sign-in is disabled in Firebase Authentication.'
+        );
+      } else if (code === 'auth/email-already-in-use') {
         setErrorMessage(
           isAr
             ? 'هذا البريد الإلكتروني مسجل بالفعل. انتقل إلى صفحة تسجيل الدخول.'
@@ -298,6 +382,7 @@ export function AuthFormView({ mode }: AuthFormViewProps) {
     setErrorMessage('');
     setInfoMessage('');
     setSessionExchangeFailed(false);
+    setAdminAccessDenied(false);
     const auth = getFirebaseClientAuth();
     if (!auth) {
       setErrorMessage(
@@ -311,23 +396,71 @@ export function AuthFormView({ mode }: AuthFormViewProps) {
     setIsSubmitting(true);
     try {
       const provider = createGoogleProvider();
-      const credential = await signInWithPopup(auth, provider);
-      const idToken = await credential.user.getIdToken();
+      const credential = await withAuthTimeout(signInWithPopup(auth, provider));
+      const idToken = await withAuthTimeout(credential.user.getIdToken());
       await exchangeTokenForSession(idToken, credential.user.refreshToken);
     } catch (err) {
       const code =
         err && typeof err === 'object' && 'code' in err ? String(err.code) : '';
-      if (code === 'auth/unauthorized-domain') {
+      if (code === 'auth/timeout') {
+        setErrorMessage(
+          isAr
+            ? 'انتهت مهلة تسجيل الدخول عبر Google قبل اكتماله. تحقق من اتصال Firebase والنوافذ المنبثقة ثم حاول مجدداً.'
+            : 'Google sign-in timed out before completing. Check Firebase connectivity and popup access, then try again.'
+        );
+      } else if (code === 'auth/unauthorized-domain') {
         setErrorMessage(
           isAr
             ? 'يرجى إضافة نطاق المعاينة الحالي في قسم Authorized domains داخل إعدادات Firebase Authentication.'
             : 'Please add the current preview domain to Authorized domains in Firebase Authentication settings.'
         );
+      } else if (code === 'auth/operation-not-allowed') {
+        setErrorMessage(
+          isAr
+            ? 'تسجيل الدخول عبر Google غير مفعّل في Firebase Authentication. فعّل مزوّد Google من إعدادات Sign-in method.'
+            : 'Google sign-in is disabled in Firebase Authentication. Enable the Google provider under Sign-in method.'
+        );
+      } else if (code === 'auth/popup-blocked') {
+        setErrorMessage(
+          isAr
+            ? 'حظر المتصفح نافذة Google المنبثقة. اسمح بالنوافذ المنبثقة لهذا الموقع ثم حاول مرة أخرى.'
+            : 'Your browser blocked the Google sign-in popup. Allow popups for this site and try again.'
+        );
+      } else if (code === 'auth/popup-closed-by-user') {
+        setErrorMessage(
+          isAr
+            ? 'أُغلقت نافذة Google قبل اكتمال تسجيل الدخول.'
+            : 'The Google sign-in window was closed before sign-in completed.'
+        );
+      } else if (code === 'auth/cancelled-popup-request') {
+        setErrorMessage(
+          isAr
+            ? 'يوجد طلب تسجيل دخول عبر Google قيد التنفيذ. انتظر لحظات ثم حاول مرة أخرى.'
+            : 'A Google sign-in popup is already in progress. Wait a moment and try again.'
+        );
+      } else if (code === 'auth/invalid-api-key') {
+        setErrorMessage(
+          isAr
+            ? 'مفتاح Firebase Web API غير صالح. راجع إعداد NEXT_PUBLIC_FIREBASE_API_KEY في بيئة الموقع.'
+            : 'The Firebase Web API key is invalid. Check NEXT_PUBLIC_FIREBASE_API_KEY in the site environment.'
+        );
+      } else if (code === 'auth/network-request-failed') {
+        setErrorMessage(
+          isAr
+            ? 'تعذر الاتصال بخدمة Google/Firebase. تحقق من اتصال الشبكة أو مانع الإعلانات ثم أعد المحاولة.'
+            : 'Could not reach Google/Firebase. Check your network or ad blocker and try again.'
+        );
+      } else if (code === 'auth/account-exists-with-different-credential') {
+        setErrorMessage(
+          isAr
+            ? 'هذا البريد مسجل بطريقة دخول أخرى. سجّل الدخول بالطريقة الأصلية ثم اربط حساب Google.'
+            : 'This email is registered with another sign-in method. Use that method first, then link Google.'
+        );
       } else {
         setErrorMessage(
           isAr
-            ? 'لم تكتمل عملية الدخول عبر Google. يمكنك المحاولة مرة أخرى أو استخدام البريد وكلمة المرور.'
-            : 'Google sign-in was cancelled or could not be completed. Please try again.'
+            ? `تعذر إكمال تسجيل الدخول عبر Google (${code || 'خطأ غير معروف'}). استخدم رمز الخطأ لتحديد إعداد Firebase المطلوب.`
+            : `Google sign-in could not be completed (${code || 'unknown error'}). Use this code to identify the Firebase setting to check.`
         );
       }
     } finally {

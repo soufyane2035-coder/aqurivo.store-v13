@@ -104,6 +104,8 @@ function applySecurityHeaders(
   response: NextResponse
 ): NextResponse {
   const isPreview = isAiStudioPreviewHost(request);
+  const isAuthenticationPage =
+    /^\/(?:[a-z]{2}\/)?(?:login|register)\/?$/.test(request.nextUrl.pathname);
 
   if (isPreview) {
     response.headers.set('Content-Security-Policy', PREVIEW_CSP_HEADER);
@@ -113,6 +115,9 @@ function applySecurityHeaders(
     response.headers.set('X-Frame-Options', 'SAMEORIGIN');
   }
 
+  if (isAuthenticationPage) {
+    response.headers.set('Cross-Origin-Opener-Policy', 'same-origin-allow-popups');
+  }
   response.headers.set('X-Content-Type-Options', 'nosniff');
   response.headers.set('X-Permitted-Cross-Domain-Policies', 'none');
   response.headers.set('X-DNS-Prefetch-Control', 'on');

@@ -4,6 +4,7 @@ import React, { useEffect, useMemo, useState } from 'react';
 import Link from 'next/link';
 import {
   AlertTriangle,
+  Bot,
   CheckCircle2,
   Edit3,
   Mail,
@@ -544,6 +545,13 @@ export function AdminProductsListView({
                         <td>
                           <div className={styles.actionRow}>
                             <Link
+                              href={`/admin/editorial-agent?kind=product&sourceUrl=${encodeURIComponent(item.affiliateUrl || `https://aqurivo.store/${locale}/products/${item.slug}`)}`}
+                              className={styles.topBarBtn}
+                            >
+                              <Bot size={14} aria-hidden="true" />
+                              <span>{isAr ? 'مراجعة بالوكيل' : 'Review with agent'}</span>
+                            </Link>
+                            <Link
                               href={`/admin/products/${encodeURIComponent(item.id)}`}
                               className={styles.topBarBtn}
                             >
@@ -669,6 +677,13 @@ export function AdminProductsListView({
                       </select>
 
                       <div className={styles.mobileActionButtonsGroup}>
+                        <Link
+                          href={`/admin/editorial-agent?kind=product&sourceUrl=${encodeURIComponent(item.affiliateUrl || `https://aqurivo.store/${locale}/products/${item.slug}`)}`}
+                          className={styles.topBarBtn}
+                        >
+                          <Bot size={14} aria-hidden="true" />
+                          <span>{isAr ? 'مراجعة بالوكيل' : 'Review with agent'}</span>
+                        </Link>
                         <Link
                           href={`/admin/products/${encodeURIComponent(item.id)}`}
                           className={styles.topBarBtn}

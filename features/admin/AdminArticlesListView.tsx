@@ -2,7 +2,7 @@
 
 import React, { useState } from 'react';
 import Link from 'next/link';
-import { Edit3, Plus, Trash2 } from 'lucide-react';
+import { Bot, Edit3, Plus, Trash2 } from 'lucide-react';
 import type { Article } from '@/types';
 import { useI18n } from '@/i18n/I18nProvider';
 import { useSaved } from '@/features/saved/SavedProvider';
@@ -174,6 +174,13 @@ export function AdminArticlesListView({
                       <td>
                         <div className={styles.actionRow}>
                           <Link
+                            href={`/admin/editorial-agent?kind=guide&sourceUrl=${encodeURIComponent(`https://aqurivo.store/${locale}/guides/${article.slug}`)}`}
+                            className={styles.topBarBtn}
+                          >
+                            <Bot size={14} aria-hidden="true" />
+                            <span>{isAr ? 'مراجعة بالوكيل' : 'Review with agent'}</span>
+                          </Link>
+                          <Link
                             href={`/admin/articles/${encodeURIComponent(article.id)}`}
                             className={styles.topBarBtn}
                           >
@@ -258,6 +265,13 @@ export function AdminArticlesListView({
                     </button>
 
                     <div className={styles.mobileActionButtonsGroup}>
+                      <Link
+                        href={`/admin/editorial-agent?kind=guide&sourceUrl=${encodeURIComponent(`https://aqurivo.store/${locale}/guides/${article.slug}`)}`}
+                        className={styles.topBarBtn}
+                      >
+                        <Bot size={14} aria-hidden="true" />
+                        <span>{isAr ? 'مراجعة بالوكيل' : 'Review with agent'}</span>
+                      </Link>
                       <Link
                         href={`/admin/articles/${encodeURIComponent(article.id)}`}
                         className={styles.topBarBtn}
