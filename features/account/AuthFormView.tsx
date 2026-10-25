@@ -126,8 +126,8 @@ export function AuthFormView({ mode }: AuthFormViewProps) {
       setAdminAccessDenied(true);
       setErrorMessage(
         isAr
-          ? 'تم تسجيل الدخول، لكن هذا الحساب غير مخوّل للإدارة. استخدم بريد المسؤول الموثّق أو أضف البريد الموثّق الصحيح إلى إعداد ADMIN_EMAILS.'
-          : 'You are signed in, but this account is not authorized to administer the site. Use the verified admin email or add the verified email to ADMIN_EMAILS.'
+          ? 'تم تسجيل الدخول، لكن لا يمكن لهذا الحساب الوصول إلى الصفحة المطلوبة.'
+          : 'You are signed in, but this account cannot access the requested page.'
       );
       return;
     }
@@ -190,8 +190,8 @@ export function AuthFormView({ mode }: AuthFormViewProps) {
         setAdminAccessDenied(true);
         setErrorMessage(
           isAr
-            ? 'تم تسجيل الدخول، لكن هذا الحساب غير مخوّل للإدارة. استخدم بريد المسؤول الموثّق أو أضف البريد الموثّق الصحيح إلى إعداد ADMIN_EMAILS.'
-            : 'You are signed in, but this account is not authorized to administer the site. Use the verified admin email or add the verified email to ADMIN_EMAILS.'
+            ? 'تم تسجيل الدخول، لكن لا يمكن لهذا الحساب الوصول إلى الصفحة المطلوبة.'
+            : 'You are signed in, but this account cannot access the requested page.'
         );
         return;
       }
