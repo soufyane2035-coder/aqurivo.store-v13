@@ -14,7 +14,10 @@ import { AmazonImportSection } from './AmazonImportSection';
 import styles from './AdminShell.module.css';
 
 interface AdminOverviewViewProps {
-  products: Product[];
+  productCount: number;
+  staleProducts: Product[];
+  staleProductCount: number;
+  topProducts: Product[];
   clicks: OutboundClickRecord[];
   messages: ContactMessage[];
   reports: ReportRecord[];
@@ -23,7 +26,10 @@ interface AdminOverviewViewProps {
 }
 
 export function AdminOverviewView({
-  products: initialProducts,
+  productCount,
+  staleProducts: initialStaleProducts,
+  staleProductCount: initialStaleProductCount,
+  topProducts,
   clicks,
   messages,
   reports,
@@ -35,7 +41,8 @@ export function AdminOverviewView({
   const { showToast } = useToast();
   const isAr = locale === 'ar';
 
-  const [products, setProducts] = useState(initialProducts);
+  const [staleProducts, setStaleProducts] = useState(initialStaleProducts);
+  const [staleProductCount, setStaleProductCount] = useState(initialStaleProductCount);
   const [refreshingId, setRefreshingId] = useState<string | null>(null);
   const [nowMs] = useState(() => Date.now());
   const dayMs = 24 * 60 * 60 * 1000;
@@ -52,15 +59,7 @@ export function AdminOverviewView({
 
   const newReportsCount = reports.filter((r) => r.status === 'new').length;
 
-  const stalePriceProducts = products.filter((p) => {
-    const updatedMs = new Date(p.priceUpdatedAt).getTime();
-    return Number.isFinite(updatedMs) && nowMs - updatedMs > 14 * dayMs;
-  });
-
   const unreadMessages = messages.filter((m) => !m.isRead);
-  const topProducts = [...products]
-    .sort((a, b) => (b.clicksCount || 0) - (a.clicksCount || 0))
-    .slice(0, 5);
 
   const handleConfirmPriceToday = async (productId: string) => {
     if (!csrfToken) return;
@@ -79,9 +78,8 @@ export function AdminOverviewView({
       });
       if (res.ok) {
         const nowIso = new Date().toISOString();
-        setProducts((prev) =>
-          prev.map((p) => (p.id === productId ? { ...p, priceUpdatedAt: nowIso } : p))
-        );
+        setStaleProducts((prev) => prev.filter((product) => product.id !== productId));
+        setStaleProductCount((prev) => Math.max(0, prev - 1));
         showToast(
           isAr ? 'تم تحديث ختم تاريخ السعر إلى اليوم.' : 'Price check timestamp updated to today.',
           'success'
@@ -168,7 +166,7 @@ export function AdminOverviewView({
           <span className={styles.kpiLabel}>
             {isAr ? 'إجمالي المنتجات' : 'Total Products'}
           </span>
-          <span className={`${styles.kpiValue} tabularNums`}>{products.length}</span>
+          <span className={`${styles.kpiValue} tabularNums`}>{productCount}</span>
         </div>
       </div>
 
@@ -176,14 +174,20 @@ export function AdminOverviewView({
       <AmazonImportSection />
 
       {/* Stale Price Alerts (>14 Days) */}
-      {stalePriceProducts.length > 0 && (
+      {staleProductCount > 0 && (
         <section className={styles.card}>
           <h2 className={styles.cardTitle}>
             <AlertTriangle size={18} aria-hidden="true" />{' '}
             {isAr
-              ? `منتجات مضى على مراجعة سعرها أكثر من 14 يوماً (${stalePriceProducts.length})`
-              : `Products With Price Unchecked for >14 Days (${stalePriceProducts.length})`}
+              ? `منتجات مضى على مراجعة سعرها أكثر من 14 يوماً (${staleProductCount})`
+              : `Products With Price Unchecked for >14 Days (${staleProductCount})`}
           </h2>
+          {staleProductCount > staleProducts.length && (
+            <p className={styles.pageSubtitle}>
+              {isAr ? 'تعرض هذه اللوحة أقدم 25 منتجاً فقط لتبقى سريعة؛ يمكنك فتح إدارة المنتجات للوصول إلى القائمة الكاملة.' : 'Showing the 25 oldest price checks to keep the dashboard responsive. Open product management for the complete list.'}{' '}
+              <Link href="/admin/products">{isAr ? 'إدارة المنتجات' : 'Manage products'}</Link>
+            </p>
+          )}
           <div className={`${styles.tableWrap} ${styles.desktopTableOnly}`}>
             <table className={styles.table}>
               <thead>
@@ -195,7 +199,7 @@ export function AdminOverviewView({
                 </tr>
               </thead>
               <tbody>
-                {stalePriceProducts.map((item) => (
+                {staleProducts.map((item) => (
                   <tr key={item.id}>
                     <td>{t(item.title)}</td>
                     <td>{t(item.sourceName)}</td>
@@ -222,7 +226,7 @@ export function AdminOverviewView({
           </div>
 
           <div className={styles.mobileAdminCards}>
-            {stalePriceProducts.map((item) => (
+            {staleProducts.map((item) => (
               <div key={item.id} className={styles.mobileItemCard}>
                 <div className={styles.mobileItemTitle}>{t(item.title)}</div>
                 <div className={styles.mobileItemMetaRow}>

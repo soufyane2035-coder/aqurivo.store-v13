@@ -10,16 +10,8 @@ import {
   updateDoc,
 } from 'firebase/firestore';
 import { getFirebaseClientFirestore } from '@/lib/firebase-client';
-
-export interface Testimonial {
-  id: string;
-  name: string;
-  rating: number;
-  text: string;
-  createdAt: string;
-  approved: boolean;
-  locale: 'ar' | 'en';
-}
+import type { Testimonial } from '@/lib/testimonial-display';
+export type { Testimonial } from '@/lib/testimonial-display';
 
 export class TestimonialSubmissionError extends Error {
   constructor(message: string) {
@@ -88,6 +80,7 @@ export async function getTestimonials(
           createdAt: String(data.createdAt || new Date().toISOString()),
           approved: Boolean(data.approved),
           locale: data.locale === 'en' ? 'en' : 'ar',
+          source: data.source === 'visitor_submission' ? 'visitor_submission' : 'unknown',
         };
       });
 
@@ -126,6 +119,7 @@ export async function addTestimonial(input: {
     createdAt: new Date().toISOString(),
     approved: false,
     locale: cleanLocale,
+    source: 'visitor_submission',
   };
 
   const res = await fetch('/api/testimonials', {

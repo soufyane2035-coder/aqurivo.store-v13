@@ -158,7 +158,7 @@ export function AddTestimonialForm({ onClose }: AddTestimonialFormProps) {
               setName(e.target.value.slice(0, 50));
               setErrorMsg(null);
             }}
-            placeholder={isAr ? 'مثال: محمد ع.' : 'e.g. Sarah K.'}
+            placeholder={isAr ? 'مثال: اسم مختصر' : 'e.g. Your name'}
             className={styles.textInput}
           />
         </div>

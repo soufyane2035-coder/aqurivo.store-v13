@@ -1,15 +1,16 @@
-export function getProductHeroTransitionName(productKey?: string | null): string | null {
-  const rawKey = (productKey ?? '').trim();
-  if (!rawKey) return null;
+export function getProductHeroTransitionName(
+  productKey?: string | null
+): string | null {
+  const key = productKey?.trim();
+  if (!key) return null;
 
-  const normalizedKey = rawKey
-    .toLowerCase()
-    .replace(/[^a-z0-9]+/g, '-')
-    .replace(/^-+|-+$/g, '');
+  // Encode every code point so different product keys cannot collapse to the
+  // same CSS custom identifier after punctuation is normalized.
+  const encodedKey = Array.from(key, (character) =>
+    (character.codePointAt(0) ?? 0).toString(16)
+  ).join('-');
 
-  if (!normalizedKey) return null;
-
-  return `aqurivo-product-hero-${normalizedKey}`;
+  return `aqurivo-product-hero-${encodedKey}`;
 }
 
 export function canUseProductHeroTransition(): boolean {
@@ -17,9 +18,15 @@ export function canUseProductHeroTransition(): boolean {
     return false;
   }
 
-  if (typeof document.startViewTransition !== 'function') {
+  if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
     return false;
   }
 
-  return !window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+  return (
+    typeof (
+      document as Document & {
+        startViewTransition?: (update: () => void) => unknown;
+      }
+    ).startViewTransition === 'function'
+  );
 }

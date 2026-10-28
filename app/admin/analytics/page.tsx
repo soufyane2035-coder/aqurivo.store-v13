@@ -12,11 +12,22 @@ export default async function AdminAnalyticsPage() {
     listAllProductsAdmin(),
     listAllSourcesAdmin(),
   ]);
+  const clickCounts = new Map<string, number>();
+  for (const click of clicks) {
+    clickCounts.set(click.productSlug, (clickCounts.get(click.productSlug) || 0) + 1);
+  }
+  const topClickedSlugs = new Set(
+    Array.from(clickCounts.entries())
+      .sort((a, b) => b[1] - a[1])
+      .slice(0, 10)
+      .map(([slug]) => slug)
+  );
+  const analyticsProducts = products.filter((product) => topClickedSlugs.has(product.slug));
 
   return (
     <AdminAnalyticsView
       clicks={clicks}
-      products={products}
+      products={analyticsProducts}
       sources={sources}
     />
   );

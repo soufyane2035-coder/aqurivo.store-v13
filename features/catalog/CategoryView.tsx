@@ -1,12 +1,10 @@
 'use client';
 
-import React, { useCallback, useMemo, useState } from 'react';
+import React, { useCallback, useEffect, useRef, useState } from 'react';
 import Link from 'next/link';
 import type { Article, Category, PartnerSource, Product } from '@/types';
 import { useI18n } from '@/i18n/I18nProvider';
 import { useSaved } from '@/features/saved/SavedProvider';
-import { filterCatalogProducts, sortCatalogProducts } from '@/lib/catalogFilters';
-import { searchAndRankProducts } from '@/lib/productSearch';
 import { SiteHeader } from '@/components/sections/SiteHeader';
 import { SiteFooter } from '@/components/sections/SiteFooter';
 import { SignatureMotif } from '@/components/ui/SignatureMotif';
@@ -20,16 +18,52 @@ interface CategoryViewProps {
   products: Product[];
   articles: Article[];
   sources: PartnerSource[];
+  productCount: number;
+  initialResultCount: number;
+  hasMore: boolean;
+  nextCursor: string | null;
+  previousCursor: string | null;
+  initialQuery: string;
+  initialStore: string;
+  initialSort: string;
+  initialMaxPrice: number | null;
+  initialCursor: string | null;
 }
 
-export function CategoryView({ category, products, articles, sources }: CategoryViewProps) {
+export function CategoryView({
+  category,
+  products: initialProducts,
+  articles,
+  sources,
+  productCount,
+  initialResultCount,
+  hasMore: initialHasMore,
+  nextCursor: initialNextCursor,
+  previousCursor: initialPreviousCursor,
+  initialQuery,
+  initialStore,
+  initialSort,
+  initialMaxPrice,
+  initialCursor,
+}: CategoryViewProps) {
   const { locale, messages, t, currency } = useI18n();
   const { isSaved, toggleSave } = useSaved();
-  const [query, setQuery] = useState('');
-  const [sortBy, setSortBy] = useState('newest');
-  const [maxPrice, setMaxPrice] = useState<number | null>(null);
-  const [store, setStore] = useState('all');
+  const [products, setProducts] = useState(initialProducts);
+  const [query, setQuery] = useState(initialQuery);
+  const [sortBy, setSortBy] = useState(initialSort);
+  const [maxPrice, setMaxPrice] = useState<number | null>(initialMaxPrice);
+  const [store, setStore] = useState(initialStore);
   const [filterBarKey, setFilterBarKey] = useState(0);
+  const [total, setTotal] = useState(initialResultCount);
+  const [hasMoreProducts, setHasMoreProducts] = useState(initialHasMore);
+  const [nextPageCursor, setNextPageCursor] = useState(initialNextCursor);
+  const [cursorHistory, setCursorHistory] = useState<(string | null)[]>(
+    initialCursor ? [initialPreviousCursor, initialCursor] : [null]
+  );
+  const [isLoading, setIsLoading] = useState(false);
+  const [loadError, setLoadError] = useState<string | null>(null);
+  const firstFilterSignature = useRef(JSON.stringify([initialQuery, initialStore, initialSort, initialMaxPrice]));
+  const activeRequest = useRef<AbortController | null>(null);
 
   const handleFilterChange = useCallback(
     (filters: {
@@ -46,21 +80,62 @@ export function CategoryView({ category, products, articles, sources }: Category
     []
   );
 
-  const filteredProducts = useMemo(() => {
-    const filtered = filterCatalogProducts(products, {
-      category: 'all',
-      store,
-      maxPrice,
-      currency,
-    });
-    const searched = query.trim()
-      ? searchAndRankProducts(filtered, query, articles)
-      : filtered;
+  const loadPage = useCallback(async (cursor: string | null) => {
+    activeRequest.current?.abort();
+    const controller = new AbortController();
+    activeRequest.current = controller;
+    setIsLoading(true);
+    setLoadError(null);
+    const params = new URLSearchParams({ category: category.slug });
+    if (query.trim()) params.set('q', query.trim());
+    if (store !== 'all') params.set('source', store);
+    if (sortBy !== 'newest') params.set('sort', sortBy);
+    if (maxPrice !== null) params.set('maxPrice', String(maxPrice));
+    if (currency) params.set('currency', currency);
+    if (cursor) params.set('cursor', cursor);
+    try {
+      const response = await fetch(`/api/catalog?${params.toString()}`, { signal: controller.signal });
+      if (!response.ok) throw new Error('Unable to load category products.');
+      const data = (await response.json()) as {
+        products: Product[];
+        total: number;
+        hasMore: boolean;
+        nextCursor: string | null;
+      };
+      if (!controller.signal.aborted) {
+        setProducts(data.products);
+        setTotal(data.total);
+        setHasMoreProducts(data.hasMore);
+        setNextPageCursor(data.nextCursor);
+        const urlParams = new URLSearchParams(window.location.search);
+        for (const key of ['q', 'source', 'sort', 'maxPrice', 'cursor']) urlParams.delete(key);
+        if (query.trim()) urlParams.set('q', query.trim());
+        if (store !== 'all') urlParams.set('source', store);
+        if (sortBy !== 'newest') urlParams.set('sort', sortBy);
+        if (maxPrice !== null) urlParams.set('maxPrice', String(maxPrice));
+        if (cursor) urlParams.set('cursor', cursor);
+        const queryString = urlParams.toString();
+        window.history.replaceState(null, '', `${window.location.pathname}${queryString ? `?${queryString}` : ''}`);
+      }
+    } catch (error) {
+      if (!controller.signal.aborted) {
+        setLoadError(error instanceof Error ? error.message : 'Unable to load category products.');
+      }
+    } finally {
+      if (!controller.signal.aborted) setIsLoading(false);
+    }
+  }, [category.slug, currency, maxPrice, query, sortBy, store]);
 
-    return sortBy === 'newest'
-      ? searched
-      : sortCatalogProducts(searched, sortBy, currency);
-  }, [articles, currency, maxPrice, products, query, sortBy, store]);
+  const filterSignature = JSON.stringify([query, store, sortBy, maxPrice, currency]);
+  useEffect(() => {
+    if (firstFilterSignature.current === filterSignature) {
+      firstFilterSignature.current = '';
+      return;
+    }
+    setCursorHistory([null]);
+    const timer = window.setTimeout(() => void loadPage(null), query.trim() ? 250 : 0);
+    return () => window.clearTimeout(timer);
+  }, [filterSignature, loadPage, query]);
 
   const resetFilters = () => {
     setQuery('');
@@ -84,8 +159,12 @@ export function CategoryView({ category, products, articles, sources }: Category
         <FilterBar
           key={filterBarKey}
           onFilterChange={handleFilterChange}
-          totalProducts={products.length}
-          filteredCount={filteredProducts.length}
+          totalProducts={productCount}
+          filteredCount={total}
+          initialQuery={filterBarKey === 0 ? initialQuery : ''}
+          initialStore={filterBarKey === 0 ? initialStore : 'all'}
+          initialSort={filterBarKey === 0 ? initialSort : 'newest'}
+          initialMaxPrice={filterBarKey === 0 ? initialMaxPrice : null}
           products={products}
           sources={sources}
           articles={articles}
@@ -93,9 +172,11 @@ export function CategoryView({ category, products, articles, sources }: Category
 
         <section className={styles.section}>
           <SignatureMotif index="02" label={messages.nav.products} />
-          {filteredProducts.length > 0 ? (
+          {loadError && <p role="alert">{loadError}</p>}
+          {isLoading && <p role="status">{locale === 'ar' ? 'جارٍ تحميل المنتجات...' : 'Loading products...'}</p>}
+          {products.length > 0 ? (
             <div className={styles.productGrid}>
-              {filteredProducts.map((product) => (
+              {products.map((product) => (
                 <ProductCard
                   key={product.id}
                   product={product}
@@ -108,25 +189,54 @@ export function CategoryView({ category, products, articles, sources }: Category
           ) : (
             <EmptyState
               title={
-                products.length > 0
+                productCount > 0
                   ? messages.empty.noSearchMatchTitle
                   : messages.empty.catalogTitle
               }
               description={
-                products.length > 0
+                productCount > 0
                   ? messages.empty.noSearchMatchDescription
                   : messages.empty.catalogDescription
               }
               primaryActionLabel={
-                products.length > 0
+                productCount > 0
                   ? messages.filters.resetFilters
                   : messages.nav.products
               }
               primaryActionHref={
-                products.length > 0 ? undefined : `/${locale}/products`
+                productCount > 0 ? undefined : `/${locale}/products`
               }
-              onPrimaryAction={products.length > 0 ? resetFilters : undefined}
+              onPrimaryAction={productCount > 0 ? resetFilters : undefined}
             />
+          )}
+          {total > 0 && (
+            <nav className={styles.pagination} aria-label={locale === 'ar' ? 'صفحات المنتجات' : 'Product pages'}>
+              <button
+                type="button"
+                onClick={() => {
+                  const cursor = cursorHistory[cursorHistory.length - 2] || null;
+                  setCursorHistory((previous) => previous.slice(0, -1));
+                  void loadPage(cursor);
+                }}
+                disabled={cursorHistory.length <= 1 || isLoading}
+              >
+                {locale === 'ar' ? 'السابق' : 'Previous'}
+              </button>
+              <span aria-live="polite">
+                {locale === 'ar' ? `عرض ${products.length} من ${total}` : `Showing ${products.length} of ${total}`}
+              </span>
+              <button
+                type="button"
+                onClick={() => {
+                  if (!nextPageCursor) return;
+                  setCursorHistory((previous) => [...previous, nextPageCursor]);
+                  void loadPage(nextPageCursor);
+                }}
+                disabled={!hasMoreProducts || isLoading}
+              >
+                {locale === 'ar' ? 'التالي' : 'Next'}
+              </button>
+            </nav>
           )}
         </section>
 

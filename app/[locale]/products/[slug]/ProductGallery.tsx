@@ -705,10 +705,7 @@ export function ProductGallery({
                     className={styles.mainImage}
                     style={
                       isPrimaryHeroImage
-                        ? {
-                            viewTransitionName: heroTransitionName || undefined,
-                            contain: 'layout paint',
-                          }
+                        ? { viewTransitionName: heroTransitionName || undefined }
                         : undefined
                     }
                     referrerPolicy="no-referrer"

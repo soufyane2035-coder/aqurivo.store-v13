@@ -8,8 +8,8 @@ import type { LocalizedText, Product, PromoBadgeType } from '@/types';
 import { useI18n } from '@/i18n/I18nProvider';
 import { formatNumber, formatProductPrice } from '@/lib/format';
 import {
-  getProductHeroTransitionName,
   canUseProductHeroTransition,
+  getProductHeroTransitionName,
 } from '@/lib/productHeroTransition';
 import {
   buildSnapshotFromProduct,
@@ -194,38 +194,47 @@ export function ProductCard({
     }
   };
 
-  const handleProductNavigation = React.useCallback(
-    (event: React.MouseEvent<HTMLAnchorElement>) => {
-      if (!detailHref || !productHeroTransitionName || !showImage) {
-        handleRecordView();
-        return;
-      }
+  const handleProductImageNavigation = (
+    event: React.MouseEvent<HTMLAnchorElement>
+  ) => {
+    handleRecordView();
 
-      const supportsSharedTransition =
-        canUseProductHeroTransition() &&
-        typeof document !== 'undefined' &&
-        typeof document.startViewTransition === 'function';
+    // Keep normal link behavior for keyboard/modified clicks, browsers without
+    // View Transitions, reduced-motion users, and cards without a real image.
+    if (
+      event.defaultPrevented ||
+      event.button !== 0 ||
+      event.metaKey ||
+      event.ctrlKey ||
+      event.shiftKey ||
+      event.altKey ||
+      !showImage ||
+      !productHeroTransitionName ||
+      !detailHref ||
+      !canUseProductHeroTransition()
+    ) {
+      return;
+    }
 
-      if (!supportsSharedTransition) {
-        handleRecordView();
-        return;
-      }
-
-      event.preventDefault();
-      handleRecordView();
-
-      const navigate = () => {
-        router.push(detailHref);
+    const view = document as Document & {
+      startViewTransition?: (update: () => void) => {
+        ready: Promise<void>;
       };
+    };
+    if (typeof view.startViewTransition !== 'function') return;
 
-      try {
-        document.startViewTransition(navigate);
-      } catch {
-        navigate();
-      }
-    },
-    [detailHref, handleRecordView, productHeroTransitionName, router, showImage]
-  );
+    event.preventDefault();
+    const navigate = () => router.push(detailHref);
+
+    try {
+      const transition = view.startViewTransition(navigate);
+      void transition.ready.catch(() => {
+        // A missing matching element should not affect the route itself.
+      });
+    } catch {
+      navigate();
+    }
+  };
 
   return (
     <article className={styles.card}>
@@ -235,7 +244,7 @@ export function ProductCard({
           <Link
             href={detailHref}
             prefetch={false}
-            onClick={handleProductNavigation}
+            onClick={handleProductImageNavigation}
             className={styles.mediaLink}
             aria-label={resolvedTitle}
           >
@@ -246,7 +255,6 @@ export function ProductCard({
                 className={styles.productImage}
                 style={{
                   viewTransitionName: productHeroTransitionName || undefined,
-                  contain: 'layout paint',
                 }}
                 referrerPolicy="no-referrer"
                 loading="lazy"
@@ -320,7 +328,7 @@ export function ProductCard({
               <Link
                 href={detailHref}
                 prefetch={false}
-                onClick={handleProductNavigation}
+                onClick={handleRecordView}
                 className={styles.titleLink}
               >
                 {resolvedTitle}

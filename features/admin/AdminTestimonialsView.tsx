@@ -59,7 +59,13 @@ export function AdminTestimonialsView({
         prev.map((t) => (t.id === item.id ? { ...t, approved: true } : t))
       );
       showToast(
-        isAr ? 'تمت الموافقة على الشهادة ونشرها.' : 'Testimonial approved and published.',
+        item.source === 'visitor_submission'
+          ? isAr
+            ? 'تمت الموافقة على الشهادة ونشرها.'
+            : 'Testimonial approved and published.'
+          : isAr
+            ? 'تم تسجيل الموافقة، لكن المصدر غير موثق ولن تظهر الشهادة للعامة.'
+            : 'Approval was recorded, but the source is unverified and the testimonial remains hidden.',
         'success'
       );
     } catch {
@@ -138,6 +144,11 @@ export function AdminTestimonialsView({
                     <tr key={item.id}>
                       <td>
                         <strong>{item.name}</strong>
+                        {item.source === 'unknown' && (
+                          <small className={styles.pageSubtitle}>
+                            {isAr ? 'مصدر غير موثق — مخفية للعامة' : 'Unverified source — hidden publicly'}
+                          </small>
+                        )}
                       </td>
                       <td>
                         <span style={{ color: '#F5A623', fontWeight: 700 }}>
@@ -184,6 +195,11 @@ export function AdminTestimonialsView({
                 <div key={item.id} className={styles.mobileItemCard}>
                   <div className={styles.mobileCardHeaderRow}>
                     <span className={styles.mobileItemTitle}>{item.name}</span>
+                    {item.source === 'unknown' && (
+                      <small className={styles.pageSubtitle}>
+                        {isAr ? 'مصدر غير موثق — مخفية للعامة' : 'Unverified source — hidden publicly'}
+                      </small>
+                    )}
                     <span style={{ color: '#F5A623', fontWeight: 700 }}>
                       {'★'.repeat(item.rating)}
                       {'☆'.repeat(Math.max(0, 5 - item.rating))}
@@ -253,6 +269,11 @@ export function AdminTestimonialsView({
                   <tr key={item.id}>
                     <td>
                       <strong>{item.name}</strong>
+                      {item.source === 'unknown' && (
+                        <small className={styles.pageSubtitle}>
+                          {isAr ? 'مصدر غير موثق — مخفية للعامة' : 'Unverified source — hidden publicly'}
+                        </small>
+                      )}
                     </td>
                     <td>
                       <span style={{ color: '#F5A623', fontWeight: 700 }}>
@@ -286,6 +307,11 @@ export function AdminTestimonialsView({
               <div key={item.id} className={styles.mobileItemCard}>
                 <div className={styles.mobileCardHeaderRow}>
                   <span className={styles.mobileItemTitle}>{item.name}</span>
+                  {item.source === 'unknown' && (
+                    <small className={styles.pageSubtitle}>
+                      {isAr ? 'مصدر غير موثق — مخفية للعامة' : 'Unverified source — hidden publicly'}
+                    </small>
+                  )}
                   <span style={{ color: '#F5A623', fontWeight: 700 }}>
                     {'★'.repeat(item.rating)}
                   </span>

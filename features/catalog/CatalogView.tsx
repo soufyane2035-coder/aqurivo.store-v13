@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useCallback, useEffect, useMemo, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
   Cpu,
   Dumbbell,
@@ -23,12 +23,8 @@ import { EmptyState } from '@/components/ui/EmptyState';
 import { FilterBar } from '@/components/FilterBar/FilterBar';
 import {
   buildInterleavedProductFeed,
-  rankProductsForVisitor,
   recordVisitorInterest,
-  searchAndRankArticles,
-  searchAndRankProducts,
 } from '@/lib/productSearch';
-import { filterCatalogProducts, sortCatalogProducts } from '@/lib/catalogFilters';
 import { seedBrowserSeenProducts } from '@/lib/viewedProductsStorage';
 import styles from './CatalogView.module.css';
 
@@ -84,9 +80,19 @@ interface CatalogViewProps {
   categories: Category[];
   sources: PartnerSource[];
   articles?: Article[];
+  totalProducts: number;
+  catalogProductCount: number;
+  hasMore: boolean;
+  nextCursor: string | null;
+  previousCursor: string | null;
+  categoryProductCounts: Record<string, number>;
+  initialMatchedArticles: Article[];
   initialCategorySlug?: string;
   initialSourceSlug?: string;
   initialSearchQuery?: string;
+  initialSort?: string;
+  initialMaxPrice?: number | null;
+  initialCursor?: string | null;
 }
 
 export function CatalogView({
@@ -94,42 +100,59 @@ export function CatalogView({
   categories,
   sources,
   articles = [],
+  totalProducts: initialTotal,
+  catalogProductCount,
+  hasMore: initialHasMore,
+  nextCursor: initialNextCursor,
+  previousCursor: initialPreviousCursor,
+  categoryProductCounts,
+  initialMatchedArticles,
   initialCategorySlug = 'all',
   initialSourceSlug = 'all',
   initialSearchQuery = '',
+  initialSort = 'newest',
+  initialMaxPrice = null,
+  initialCursor = null,
 }: CatalogViewProps) {
   const { locale, messages, t, currency } = useI18n();
   const { isSaved, toggleSave } = useSaved();
 
   const [products, setProducts] = useState<Product[]>(initialProducts);
+  const [matchedArticles, setMatchedArticles] = useState(initialMatchedArticles);
   const [searchQuery, setSearchQuery] = useState(initialSearchQuery);
   const [selectedCategory, setSelectedCategory] = useState(initialCategorySlug);
   const [selectedSource, setSelectedSource] = useState(initialSourceSlug);
-  const [maxPrice, setMaxPrice] = useState<number | null>(null);
-  const [sortBy, setSortBy] = useState<string>('newest');
+  const [maxPrice, setMaxPrice] = useState<number | null>(initialMaxPrice);
+  const [sortBy, setSortBy] = useState(initialSort);
   const [filterBarKey, setFilterBarKey] = useState(0);
-  const [visitorReady, setVisitorReady] = useState(false);
   const [randomSeed, setRandomSeed] = useState(1);
-  const [intentTick, setIntentTick] = useState(0);
+  const [totalMatching, setTotalMatching] = useState(initialTotal);
+  const [hasMore, setHasMore] = useState(initialHasMore);
+  const [nextCursor, setNextCursor] = useState(initialNextCursor);
+  const [cursorHistory, setCursorHistory] = useState<(string | null)[]>(
+    initialCursor ? [initialPreviousCursor, initialCursor] : [null]
+  );
+  const [isLoadingPage, setIsLoadingPage] = useState(false);
+  const [loadError, setLoadError] = useState<string | null>(null);
+  const firstFilterSignature = useRef(
+    JSON.stringify([initialSearchQuery, initialCategorySlug, initialSourceSlug, initialMaxPrice, initialSort, currency])
+  );
+  const activeRequest = useRef<AbortController | null>(null);
 
   useEffect(() => {
     setProducts(initialProducts);
-  }, [initialProducts]);
+    setMatchedArticles(initialMatchedArticles);
+    setTotalMatching(initialTotal);
+    setHasMore(initialHasMore);
+    setNextCursor(initialNextCursor);
+    setCursorHistory(initialCursor ? [initialPreviousCursor, initialCursor] : [null]);
+  }, [initialProducts, initialMatchedArticles, initialTotal, initialHasMore, initialNextCursor, initialCursor, initialPreviousCursor]);
 
   useEffect(() => {
-    setVisitorReady(true);
     setRandomSeed(Math.floor(Math.random() * 1000000) + 2);
     if (products.length > 0) {
       seedBrowserSeenProducts(products.slice(0, 12));
     }
-
-    const handleIntentUpdate = () => {
-      setIntentTick((prev) => prev + 1);
-    };
-    window.addEventListener('aqurivo:session-intent-updated', handleIntentUpdate);
-    return () => {
-      window.removeEventListener('aqurivo:session-intent-updated', handleIntentUpdate);
-    };
   }, [products]);
 
   useEffect(() => {
@@ -160,61 +183,84 @@ export function CatalogView({
     []
   );
 
-  const matchedArticles = useMemo(() => {
-    const trimmed = searchQuery.trim();
-    if (!trimmed || articles.length === 0) return [];
-    return searchAndRankArticles(articles, trimmed, products);
-  }, [articles, searchQuery, products]);
-
-  const filteredProducts = useMemo(() => {
-    const strictBase = filterCatalogProducts(products, {
-      category: selectedCategory,
-      store: selectedSource,
-      maxPrice,
-      currency,
-    });
-
-    if (searchQuery.trim()) {
-      const searchedList = searchAndRankProducts(strictBase, searchQuery, articles);
-      if (sortBy === 'newest') {
-        return searchedList;
-      }
-      return sortCatalogProducts(searchedList, sortBy, currency);
-    }
-
-    if (sortBy === 'newest' && visitorReady) {
-      return rankProductsForVisitor(strictBase, {
-        activeCategorySlug: selectedCategory !== 'all' ? selectedCategory : undefined,
-      });
-    }
-
-    return sortCatalogProducts(strictBase, sortBy, currency);
-  }, [
-    products,
-    articles,
-    maxPrice,
+  const filterSignature = JSON.stringify([
     searchQuery,
     selectedCategory,
     selectedSource,
+    maxPrice,
     sortBy,
-    visitorReady,
-    intentTick,
     currency,
   ]);
 
-  const categoryProductCounts = useMemo(() => {
-    const counts: Record<string, number> = {};
-    for (const cat of categories) {
-      counts[cat.slug] = products.filter(
-        (p) => p.categorySlug === cat.slug || p.categoryId === cat.slug || p.categoryId === cat.id
-      ).length;
+  const updateUrl = useCallback((cursor: string | null) => {
+    const params = new URLSearchParams(window.location.search);
+    for (const key of ['q', 'category', 'source', 'sort', 'maxPrice', 'cursor']) {
+      params.delete(key);
     }
-    return counts;
-  }, [categories, products]);
+    if (searchQuery.trim()) params.set('q', searchQuery.trim());
+    if (selectedCategory !== 'all') params.set('category', selectedCategory);
+    if (selectedSource !== 'all') params.set('source', selectedSource);
+    if (sortBy !== 'newest') params.set('sort', sortBy);
+    if (maxPrice !== null) params.set('maxPrice', String(maxPrice));
+    if (cursor) params.set('cursor', cursor);
+    const query = params.toString();
+    window.history.replaceState(null, '', `${window.location.pathname}${query ? `?${query}` : ''}`);
+  }, [maxPrice, searchQuery, selectedCategory, selectedSource, sortBy]);
+
+  const loadCatalogPage = useCallback(async (cursor: string | null) => {
+    activeRequest.current?.abort();
+    const controller = new AbortController();
+    activeRequest.current = controller;
+    setIsLoadingPage(true);
+    setLoadError(null);
+    const params = new URLSearchParams();
+    if (searchQuery.trim()) params.set('q', searchQuery.trim());
+    if (selectedCategory !== 'all') params.set('category', selectedCategory);
+    if (selectedSource !== 'all') params.set('source', selectedSource);
+    if (sortBy !== 'newest') params.set('sort', sortBy);
+    if (maxPrice !== null) params.set('maxPrice', String(maxPrice));
+    if (currency) params.set('currency', currency);
+    if (cursor) params.set('cursor', cursor);
+    try {
+      const response = await fetch(`/api/catalog?${params.toString()}`, { signal: controller.signal });
+      if (!response.ok) throw new Error('Unable to load catalog results.');
+      const data = (await response.json()) as {
+        products: Product[];
+        total: number;
+        hasMore: boolean;
+        nextCursor: string | null;
+        previousCursor: string | null;
+        matchedArticles: Article[];
+      };
+      setProducts(data.products);
+      setMatchedArticles(data.matchedArticles);
+      setTotalMatching(data.total);
+      setHasMore(data.hasMore);
+      setNextCursor(data.nextCursor);
+      updateUrl(cursor);
+    } catch (error) {
+      if (error instanceof DOMException && error.name === 'AbortError') return;
+      setLoadError(error instanceof Error ? error.message : 'Unable to load catalog results.');
+    } finally {
+      if (!controller.signal.aborted) setIsLoadingPage(false);
+    }
+  }, [currency, maxPrice, searchQuery, selectedCategory, selectedSource, sortBy, updateUrl]);
+
+  useEffect(() => {
+    if (firstFilterSignature.current === filterSignature) {
+      firstFilterSignature.current = '';
+      return;
+    }
+    setCursorHistory([null]);
+    const timer = window.setTimeout(() => {
+      void loadCatalogPage(null);
+    }, searchQuery.trim() ? 250 : 0);
+    return () => window.clearTimeout(timer);
+  }, [filterSignature, loadCatalogPage, searchQuery]);
 
   const interleavedFeed = useMemo(
-    () => buildInterleavedProductFeed(filteredProducts, articles, randomSeed),
-    [filteredProducts, articles, randomSeed]
+    () => buildInterleavedProductFeed(products, articles, randomSeed),
+    [products, articles, randomSeed]
   );
 
   const resetAllFilters = () => {
@@ -224,6 +270,16 @@ export function CatalogView({
     setMaxPrice(null);
     setSortBy('newest');
     setFilterBarKey((k) => k + 1);
+  };
+
+  const changePage = (cursor: string | null, direction: 'next' | 'previous') => {
+    if (direction === 'next') {
+      setCursorHistory((previous) => [...previous, cursor]);
+    } else {
+      setCursorHistory((previous) => previous.slice(0, -1));
+    }
+    void loadCatalogPage(cursor);
+    document.getElementById('catalog-results')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
   };
 
   return (
@@ -246,10 +302,12 @@ export function CatalogView({
           <FilterBar
             key={filterBarKey}
             onFilterChange={handleFilterChange}
-            totalProducts={products.length}
-            filteredCount={filteredProducts.length}
+            totalProducts={catalogProductCount}
+            filteredCount={totalMatching}
             initialQuery={filterBarKey === 0 ? initialSearchQuery : ''}
             initialStore={filterBarKey === 0 ? initialSourceSlug : 'all'}
+            initialSort={filterBarKey === 0 ? initialSort : 'newest'}
+            initialMaxPrice={filterBarKey === 0 ? initialMaxPrice : null}
             products={products}
             sources={sources}
             articles={articles}
@@ -278,7 +336,7 @@ export function CatalogView({
                     {messages.filters.allCategories}
                   </span>
                   <span className={`${styles.categoryPillCount} tabularNums`}>
-                    {formatNumber(products.length, locale)}
+                    {formatNumber(catalogProductCount, locale)}
                   </span>
                 </button>
 
@@ -341,7 +399,9 @@ export function CatalogView({
               </div>
             </div>
           )}
-          {products.length === 0 ? (
+          {loadError && <p role="alert">{loadError}</p>}
+          {isLoadingPage && <p role="status">{locale === 'ar' ? 'جارٍ تحميل النتائج...' : 'Loading results...'}</p>}
+          {catalogProductCount === 0 ? (
             <EmptyState
               title={messages.empty.catalogTitle}
               description={messages.empty.catalogDescription}
@@ -350,7 +410,7 @@ export function CatalogView({
               secondaryActionLabel={messages.nav.contact}
               secondaryActionHref={`/${locale}/contact`}
             />
-          ) : filteredProducts.length === 0 ? (
+          ) : totalMatching === 0 ? (
             <EmptyState
               title={messages.empty.noSearchMatchTitle}
               description={messages.empty.noSearchMatchDescription}
@@ -358,7 +418,7 @@ export function CatalogView({
               onPrimaryAction={resetAllFilters}
             />
           ) : (
-            <div className={styles.productGrid}>
+            <div id="catalog-results" className={styles.productGrid}>
               {interleavedFeed.map((entry, idx) =>
                 entry.type === 'product' ? (
                   <ProductCard
@@ -382,10 +442,33 @@ export function CatalogView({
               )}
             </div>
           )}
+          {totalMatching > 0 && (
+            <nav className={styles.pagination} aria-label={locale === 'ar' ? 'صفحات المنتجات' : 'Product pages'}>
+              <button
+                type="button"
+                onClick={() => changePage(cursorHistory[cursorHistory.length - 2] || null, 'previous')}
+                disabled={cursorHistory.length <= 1 || isLoadingPage}
+              >
+                {locale === 'ar' ? 'السابق' : 'Previous'}
+              </button>
+              <span aria-live="polite">
+                {locale === 'ar'
+                  ? `عرض ${products.length} من ${formatNumber(totalMatching, locale)}`
+                  : `Showing ${products.length} of ${formatNumber(totalMatching, locale)}`}
+              </span>
+              <button
+                type="button"
+                onClick={() => nextCursor && changePage(nextCursor, 'next')}
+                disabled={!hasMore || isLoadingPage}
+              >
+                {locale === 'ar' ? 'التالي' : 'Next'}
+              </button>
+            </nav>
+          )}
         </section>
       </main>
 
-      <SiteFooter productsCount={products.length} />
+      <SiteFooter productsCount={catalogProductCount} />
     </div>
   );
 }

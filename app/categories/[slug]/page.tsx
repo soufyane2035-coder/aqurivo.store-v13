@@ -18,11 +18,14 @@ export async function generateMetadata({
 
 export default async function CategoryPage({
   params,
+  searchParams,
 }: {
   params: Promise<{ slug: string }>;
+  searchParams: Promise<{ q?: string; source?: string; sort?: string; maxPrice?: string; cursor?: string }>;
 }) {
   const { slug } = await params;
   return LocalizedCategoryPage({
     params: Promise.resolve({ locale: 'ar', slug }),
+    searchParams,
   });
 }

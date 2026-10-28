@@ -1,14 +1,11 @@
 'use client';
 
-import React, { useEffect, useState } from 'react';
+import React, { useState } from 'react';
 import { MessageSquarePlus } from 'lucide-react';
 import { useI18n } from '@/i18n/I18nProvider';
 import { SignatureMotif } from '@/components/ui/SignatureMotif';
-import {
-  FALLBACK_TESTIMONIALS,
-  getTestimonials,
-  type Testimonial,
-} from '@/lib/testimonials';
+import { buildTestimonialReviewJsonLd, getPublicTestimonials } from '@/lib/testimonial-display';
+import type { Testimonial } from '@/lib/testimonials';
 import { AddTestimonialForm } from './AddTestimonialForm';
 import styles from './Testimonials.module.css';
 
@@ -40,56 +37,11 @@ export function Testimonials({
   const isAr = locale === 'ar';
 
   const [testimonials, setTestimonials] = useState<Testimonial[]>(
-    initialTestimonials && initialTestimonials.length > 0
-      ? initialTestimonials
-      : []
+    getPublicTestimonials(initialTestimonials ?? [])
   );
   const [showForm, setShowForm] = useState(false);
-
-  const reviewList = testimonials.map((item) => ({
-    '@type': 'Review',
-    author: {
-      '@type': 'Person',
-      name: item.name,
-    },
-    datePublished: item.createdAt.split('T')[0],
-    reviewBody: item.text,
-    inLanguage: item.locale,
-    reviewRating: {
-      '@type': 'Rating',
-      ratingValue: item.rating,
-      bestRating: 5,
-      worstRating: 1,
-    },
-  }));
-
-  const averageRating =
-    reviewList.length > 0
-      ? (
-          reviewList.reduce(
-            (sum, r) => sum + Number(r.reviewRating.ratingValue || 5),
-            0
-          ) / reviewList.length
-        ).toFixed(1)
-      : null;
-
-  const reviewSchemaJsonLd =
-    reviewList.length > 0
-      ? {
-          '@context': 'https://schema.org',
-          '@type': 'Organization',
-          name: 'AQURIVO',
-          url: 'https://aqurivo.store',
-          aggregateRating: {
-            '@type': 'AggregateRating',
-            ratingValue: String(averageRating),
-            reviewCount: String(reviewList.length),
-            bestRating: '5',
-            worstRating: '1',
-          },
-          review: reviewList,
-        }
-      : null;
+  const visibleTestimonials = getPublicTestimonials(testimonials);
+  const reviewSchemaJsonLd = buildTestimonialReviewJsonLd(visibleTestimonials);
 
   return (
     <section
@@ -116,16 +68,16 @@ export function Testimonials({
           </h2>
           <p className={styles.subheading}>
             {isAr
-              ? 'تجارب حقيقية من متسوقين قارنوا الأسعار والعروض عبر AQURIVO'
-              : 'Real experiences from shoppers comparing deals and prices on AQURIVO'}
+              ? 'آراء الزوار حول AQURIVO'
+              : 'Visitor feedback about AQURIVO'}
           </p>
         </div>
       </div>
 
       {/* Horizontal Scroll-Snap Carousel on Mobile / 3-Col Grid on Desktop OR Clean Empty State */}
-      {testimonials.length > 0 ? (
+      {visibleTestimonials.length > 0 ? (
         <div className={styles.cardsTrack}>
-        {testimonials.map((item) => {
+        {visibleTestimonials.map((item) => {
           const formattedDate = formatTestimonialDate(item.createdAt, locale);
           return (
             <article

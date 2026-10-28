@@ -215,7 +215,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         />
         <script
           dangerouslySetInnerHTML={{
-            __html: `(function(){var s=null;try{s=localStorage.getItem('aqurivo_theme')||localStorage.getItem('soufshop_theme');}catch(e){}var d=s==='dark'||(s!=='light'&&window.matchMedia('(prefers-color-scheme: dark)').matches);var c=d?'dark':'light';document.documentElement.classList.add(c);document.documentElement.setAttribute('data-theme',c);})();`,
+            __html: `(function(){var p=window.location.pathname;var m=p.match(/^\\/(ar|en)(?:\\/|$)/);var l=m?m[1]:(/^\\/(?:products|categories|guides|blog)(?:\\/|$)/.test(p)?'ar':'');if(l){document.documentElement.lang=l;document.documentElement.dir=l==='ar'?'rtl':'ltr';}var s=null;try{s=localStorage.getItem('aqurivo_theme')||localStorage.getItem('soufshop_theme');}catch(e){}var d=s==='dark'||(s!=='light'&&window.matchMedia('(prefers-color-scheme: dark)').matches);var c=d?'dark':'light';document.documentElement.classList.add(c);document.documentElement.setAttribute('data-theme',c);})();`,
           }}
         />
         <script

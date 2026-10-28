@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import Link from 'next/link';
 import {
   AlertTriangle,
@@ -19,7 +19,6 @@ import { useSaved } from '@/features/saved/SavedProvider';
 import { useToast } from '@/components/ui/Toast';
 import {
   deleteAdminDocumentFromFirebaseClient,
-  fetchAdminCollectionFromFirebaseClient,
   getFreshFirebaseIdToken,
   syncAdminDocumentToFirebaseClient,
 } from '@/lib/firebase-client';
@@ -37,33 +36,18 @@ interface ProductWarningInfo {
 
 interface AdminProductsListViewProps {
   initialProducts: Product[];
+  initialTotal: number;
+  initialHasMore: boolean;
+  initialNextCursor: string | null;
   sources: PartnerSource[];
   productWarnings?: Record<string, ProductWarningInfo>;
 }
 
-function mergeProductLists(primary: Product[], secondary: Product[]): Product[] {
-  const byId = new Map<string, Product>();
-  for (const item of secondary) {
-    if (item && item.id) byId.set(item.id, item);
-  }
-  for (const item of primary) {
-    if (!item || !item.id) continue;
-    const existing = byId.get(item.id);
-    if (!existing) {
-      byId.set(item.id, item);
-    } else {
-      const tNew = item.updatedAt ? new Date(item.updatedAt).getTime() : 0;
-      const tOld = existing.updatedAt ? new Date(existing.updatedAt).getTime() : 0;
-      byId.set(item.id, tNew >= tOld ? item : existing);
-    }
-  }
-  return Array.from(byId.values()).sort((a, b) =>
-    (b.updatedAt || b.createdAt || '').localeCompare(a.updatedAt || a.createdAt || '')
-  );
-}
-
 export function AdminProductsListView({
   initialProducts,
+  initialTotal,
+  initialHasMore,
+  initialNextCursor,
   sources,
   productWarnings = {},
 }: AdminProductsListViewProps) {
@@ -73,9 +57,15 @@ export function AdminProductsListView({
   const isAr = locale === 'ar';
 
   const [products, setProducts] = useState(initialProducts);
+  const [total, setTotal] = useState(initialTotal);
+  const [hasMore, setHasMore] = useState(initialHasMore);
+  const [nextCursor, setNextCursor] = useState(initialNextCursor);
+  const [cursorHistory, setCursorHistory] = useState<(string | null)[]>([null]);
   const [search, setSearch] = useState('');
   const [sourceFilter, setSourceFilter] = useState('all');
   const [statusFilter, setStatusFilter] = useState('all');
+  const [isLoadingPage, setIsLoadingPage] = useState(false);
+  const [listError, setListError] = useState<string | null>(null);
   const [deleteTarget, setDeleteTarget] = useState<Product | null>(null);
   const [isDeleting, setIsDeleting] = useState(false);
 
@@ -89,49 +79,62 @@ export function AdminProductsListView({
   const [purgeTargetEmail, setPurgeTargetEmail] = useState<string | null>(null);
   const [purgedCount, setPurgedCount] = useState(0);
 
-  // Sync state whenever server props refresh
-  useEffect(() => {
-    setProducts((prev) => mergeProductLists(initialProducts, prev));
-  }, [initialProducts]);
+  const firstFilterSignature = useRef(JSON.stringify(['', 'all', 'all']));
+  const filterSignature = JSON.stringify([search, sourceFilter, statusFilter]);
+  const activeListRequest = useRef<AbortController | null>(null);
 
-  // Automatically fetch latest products from server & Cloud Firestore on mount
-  useEffect(() => {
-    let active = true;
-    (async () => {
-      try {
-        const fbToken = await getFreshFirebaseIdToken();
-        const headers: Record<string, string> = {};
-        if (fbToken) headers['x-firebase-id-token'] = fbToken;
-
-        const apiRes = await fetch('/api/admin/products', {
-          headers,
-          cache: 'no-store',
-        })
-          .then((r) => (r.ok ? r.json() : null))
-          .catch(() => null);
-
-        let productsList: Product[] | null = null;
-        if (apiRes && Array.isArray(apiRes.products) && apiRes.products.length > 0) {
-          productsList = apiRes.products as Product[];
-        } else {
-          // Fallback to direct client fetch only if API route failed or returned empty
-          const cloudItems = await fetchAdminCollectionFromFirebaseClient<Product>('products');
-          if (Array.isArray(cloudItems) && cloudItems.length > 0) {
-            productsList = cloudItems;
-          }
-        }
-
-        if (!active || !productsList) return;
-
-        setProducts((prev) => mergeProductLists(productsList!, prev));
-      } catch {
-        // Ignore background refresh error
+  const loadPage = useCallback(async (cursor: string | null) => {
+    activeListRequest.current?.abort();
+    const controller = new AbortController();
+    activeListRequest.current = controller;
+    setIsLoadingPage(true);
+    setListError(null);
+    try {
+      const fbToken = await getFreshFirebaseIdToken();
+      const headers: Record<string, string> = {};
+      if (fbToken) headers['x-firebase-id-token'] = fbToken;
+      const params = new URLSearchParams({
+        q: search.trim(),
+        source: sourceFilter,
+        status: statusFilter,
+      });
+      if (cursor) params.set('cursor', cursor);
+      const response = await fetch(`/api/admin/products?${params.toString()}`, {
+        headers,
+        cache: 'no-store',
+        signal: controller.signal,
+      });
+      if (!response.ok) throw new Error('Unable to load products from the server.');
+      const data = (await response.json()) as {
+        products: Product[];
+        total: number;
+        hasMore: boolean;
+        nextCursor: string | null;
+      };
+      if (!controller.signal.aborted) {
+        setProducts(data.products);
+        setTotal(data.total);
+        setHasMore(data.hasMore);
+        setNextCursor(data.nextCursor);
       }
-    })();
-    return () => {
-      active = false;
-    };
-  }, []);
+    } catch (error) {
+      if (!controller.signal.aborted) {
+        setListError(error instanceof Error ? error.message : 'Unable to load products.');
+      }
+    } finally {
+      if (!controller.signal.aborted) setIsLoadingPage(false);
+    }
+  }, [search, sourceFilter, statusFilter]);
+
+  useEffect(() => {
+    if (firstFilterSignature.current === filterSignature) {
+      firstFilterSignature.current = '';
+      return;
+    }
+    setCursorHistory([null]);
+    const timer = window.setTimeout(() => void loadPage(null), search.trim() ? 250 : 0);
+    return () => window.clearTimeout(timer);
+  }, [filterSignature, loadPage, search]);
 
   // Catch email confirmation redirects (?purged=true or ?purge_error=...)
   useEffect(() => {
@@ -144,6 +147,9 @@ export function AdminProductsListView({
     if (purged === 'true') {
       const c = count ? parseInt(count, 10) : 0;
       setProducts([]);
+      setTotal(0);
+      setHasMore(false);
+      setNextCursor(null);
       setPurgedCount(c);
       showToast(
         isAr
@@ -204,9 +210,8 @@ export function AdminProductsListView({
           updatedAt,
         });
       }
-      setProducts((prev) =>
-        prev.map((p) => (p.id === productId ? { ...p, status: nextStatus, updatedAt } : p))
-      );
+      setCursorHistory([null]);
+      void loadPage(null);
       showToast(
         isAr ? 'تم تحديث حالة نشر المنتج.' : 'Product status updated.',
         'success'
@@ -244,6 +249,8 @@ export function AdminProductsListView({
       setProducts((prev) =>
         prev.map((p) => (p.id === productId ? { ...p, priceUpdatedAt: nowIso } : p))
       );
+      setCursorHistory([null]);
+      void loadPage(null);
       showToast(
         isAr ? 'تم تأكيد صحة السعر بتاريخ اليوم.' : 'Price check timestamp refreshed.',
         'success'
@@ -273,7 +280,10 @@ export function AdminProductsListView({
       );
       if (res.ok) {
         setProducts((prev) => prev.filter((p) => p.id !== targetId));
+        setTotal((prev) => Math.max(0, prev - 1));
         setDeleteTarget(null);
+        setCursorHistory([null]);
+        void loadPage(null);
         showToast(
           isAr ? 'تم حذف المنتج بنجاح من جميع الأجهزة.' : 'Product deleted.',
           'info'
@@ -376,8 +386,11 @@ export function AdminProductsListView({
         return;
       }
 
-      const count = data.purgedCount || products.length;
+      const count = data.purgedCount || total;
       setProducts([]);
+      setTotal(0);
+      setHasMore(false);
+      setNextCursor(null);
       setPurgedCount(count);
       setPurgeStage('success');
       showToast(
@@ -474,6 +487,9 @@ export function AdminProductsListView({
             </select>
           </div>
         </div>
+
+        {listError && <p role="alert">{listError}</p>}
+        {isLoadingPage && <p role="status">{isAr ? 'جارٍ تحميل المنتجات...' : 'Loading products...'}</p>}
 
         {filtered.length === 0 ? (
           <p className={styles.pageSubtitle}>
@@ -715,6 +731,35 @@ export function AdminProductsListView({
               })}
             </div>
           </>
+        )}
+        {total > 0 && (
+          <nav className={styles.pagination} aria-label={isAr ? 'صفحات المنتجات' : 'Product pages'}>
+            <button
+              type="button"
+              onClick={() => {
+                const cursor = cursorHistory[cursorHistory.length - 2] || null;
+                setCursorHistory((previous) => previous.slice(0, -1));
+                void loadPage(cursor);
+              }}
+              disabled={cursorHistory.length <= 1 || isLoadingPage}
+            >
+              {isAr ? 'السابق' : 'Previous'}
+            </button>
+            <span aria-live="polite">
+              {isAr ? `عرض ${products.length} من ${total}` : `Showing ${products.length} of ${total}`}
+            </span>
+            <button
+              type="button"
+              onClick={() => {
+                if (!nextCursor) return;
+                setCursorHistory((previous) => [...previous, nextCursor]);
+                void loadPage(nextCursor);
+              }}
+              disabled={!hasMore || isLoadingPage}
+            >
+              {isAr ? 'التالي' : 'Next'}
+            </button>
+          </nav>
         )}
       </section>
 

@@ -10,6 +10,7 @@ import {
   invalidateProductsCache,
 } from '@/server/repositories/products.repo';
 import { sanitizePlainText, ValidationError } from '@/server/validators';
+import { paginateByCursor, sortByCursor } from '@/lib/listPagination';
 
 export const dynamic = 'force-dynamic';
 
@@ -32,14 +33,41 @@ function revalidateAllProductSurfaces(slug?: string) {
   }
 }
 
-export async function GET() {
+export async function GET(req: NextRequest) {
   const guard = await requireAdminApi();
   if (!guard.authorized) return guard.response;
 
   try {
-    const products = await listAllProductsAdmin();
+    const params = req.nextUrl.searchParams;
+    const query = sanitizePlainText(params.get('q'), 120).toLocaleLowerCase();
+    const source = sanitizePlainText(params.get('source'), 128);
+    const status = params.get('status');
+    const filtered = (await listAllProductsAdmin()).filter((product) => {
+      if (source && source !== 'all' && product.sourceSlug !== source) return false;
+      if (
+        status &&
+        status !== 'all' &&
+        product.status !== status
+      ) return false;
+      if (query) {
+        const haystack = `${product.title.en} ${product.title.ar} ${product.slug}`.toLocaleLowerCase();
+        if (!haystack.includes(query)) return false;
+      }
+      return true;
+    });
+    const sorted = sortByCursor(filtered, (a, b) =>
+      String(b.updatedAt || b.createdAt || '').localeCompare(
+        String(a.updatedAt || a.createdAt || '')
+      )
+    );
+    const page = paginateByCursor(sorted, params.get('cursor'), 30);
     return NextResponse.json(
-      { products },
+      {
+        products: page.items,
+        total: page.total,
+        hasMore: page.hasMore,
+        nextCursor: page.nextCursor,
+      },
       { headers: { 'Cache-Control': 'no-store, max-age=0' } }
     );
   } catch (err) {

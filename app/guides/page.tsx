@@ -11,8 +11,13 @@ export async function generateMetadata(): Promise<Metadata> {
   });
 }
 
-export default async function GuidesPage() {
+export default async function GuidesPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ category?: string; q?: string; cursor?: string }>;
+}) {
   return LocalizedGuidesPage({
     params: Promise.resolve({ locale: 'ar' }),
+    searchParams,
   });
 }

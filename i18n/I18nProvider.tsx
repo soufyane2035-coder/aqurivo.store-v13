@@ -17,6 +17,7 @@ import {
   interpolateMessage,
   pickLocalizedText,
 } from './index';
+import { buildLocalizedPathname, resolvePathLocale } from './routeLocale';
 import type { MessagesDictionary } from './en';
 import {
   detectVisitorCurrencyClient,
@@ -37,13 +38,6 @@ const I18nContext = createContext<I18nContextValue | null>(null);
 
 const LOCALE_STORAGE_KEY = 'soufshop_locale';
 const LOCALE_SCROLL_KEY = 'soufshop_locale_scroll_y';
-
-function resolvePathLocale(pathname: string | null): Locale | null {
-  if (!pathname) return null;
-  if (pathname === '/en' || pathname.startsWith('/en/')) return 'en';
-  if (pathname === '/ar' || pathname.startsWith('/ar/')) return 'ar';
-  return null;
-}
 
 const ARAB_COUNTRIES_CLIENT = new Set([
   'MA', 'DZ', 'TN', 'LY', 'EG', 'SD', 'MR', 'SO', 'DJ', 'KM',
@@ -75,20 +69,6 @@ function detectClientFallbackLocale(): Locale {
   }
 
   return 'en';
-}
-
-function buildLocalizedPathname(pathname: string | null, nextLocale: Locale): string | null {
-  if (!pathname) return null;
-  if (pathname === '/' || pathname === '/en' || pathname === '/ar') {
-    return `/${nextLocale}`;
-  }
-  if (pathname.startsWith('/en/')) {
-    return `/${nextLocale}${pathname.slice(3)}`;
-  }
-  if (pathname.startsWith('/ar/')) {
-    return `/${nextLocale}${pathname.slice(3)}`;
-  }
-  return null;
 }
 
 export function I18nProvider({

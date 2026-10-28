@@ -16,10 +16,23 @@ export default async function AdminOverviewPage() {
     listMessagesAdmin(),
     listReportsAdmin(),
   ]);
+  const nowMs = Date.now();
+  const staleProducts = products
+    .filter((product) => {
+      const updatedMs = new Date(product.priceUpdatedAt).getTime();
+      return Number.isFinite(updatedMs) && nowMs - updatedMs > 14 * 24 * 60 * 60 * 1000;
+    })
+    .sort((a, b) => String(a.priceUpdatedAt || '').localeCompare(String(b.priceUpdatedAt || '')));
+  const topProducts = [...products]
+    .sort((a, b) => (b.clicksCount || 0) - (a.clicksCount || 0))
+    .slice(0, 5);
 
   return (
     <AdminOverviewView
-      products={products}
+      productCount={products.length}
+      staleProducts={staleProducts.slice(0, 25)}
+      staleProductCount={staleProducts.length}
+      topProducts={topProducts}
       clicks={clicks}
       messages={messages}
       reports={reports}

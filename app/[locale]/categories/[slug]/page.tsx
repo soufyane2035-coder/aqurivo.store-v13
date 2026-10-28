@@ -8,6 +8,7 @@ import { listActiveSources } from '@/server/repositories/sources.repo';
 import { CategoryView } from '@/features/catalog/CategoryView';
 import { buildProductSchemaJson } from '@/lib/productSchema';
 import type { Locale } from '@/types';
+import { getProductCatalogPage } from '@/server/services/catalog-pagination.service';
 
 export const revalidate = 86400;
 
@@ -147,10 +148,13 @@ export async function generateMetadata({
 
 export default async function LocalizedCategoryPage({
   params,
+  searchParams,
 }: {
   params: Promise<{ locale: string; slug: string }>;
+  searchParams: Promise<{ q?: string; source?: string; sort?: string; maxPrice?: string; cursor?: string }>;
 }) {
   const { locale, slug } = await params;
+  const resolvedSearch = await searchParams;
   if (locale !== 'ar' && locale !== 'en') {
     notFound();
   }
@@ -174,6 +178,15 @@ export default async function LocalizedCategoryPage({
   const categoryArticles = allArticles.filter(
     (a) => a.categorySlug === category.slug || a.categoryId === category.id
   );
+  const parsedMaxPrice = resolvedSearch.maxPrice ? Number(resolvedSearch.maxPrice) : null;
+  const productPage = getProductCatalogPage(allProducts, allArticles, {
+    category: category.slug,
+    source: resolvedSearch.source,
+    query: resolvedSearch.q,
+    sort: resolvedSearch.sort,
+    maxPrice: Number.isFinite(parsedMaxPrice) ? parsedMaxPrice : null,
+    cursor: resolvedSearch.cursor || null,
+  });
 
   const categoryName = isAr
     ? category.name?.ar || category.name?.en || category.slug
@@ -198,7 +211,7 @@ export default async function LocalizedCategoryPage({
         '@type': 'ItemList',
         name: categoryName,
         numberOfItems: categoryProducts.length,
-        itemListElement: categoryProducts.slice(0, 30).map((product, idx) => {
+        itemListElement: productPage.items.map((product, idx) => {
           const prodSlug = encodeURIComponent(product.slug || product.id);
           const prodUrl = `${BASE_URL}/${locale}/products/${prodSlug}`;
           const schemaItem = buildProductSchemaJson({
@@ -253,9 +266,19 @@ export default async function LocalizedCategoryPage({
       />
       <CategoryView
         category={category}
-        products={categoryProducts}
-        articles={categoryArticles}
+        products={productPage.items}
+        articles={categoryArticles.slice(0, 12)}
         sources={sources}
+        productCount={categoryProducts.length}
+        initialResultCount={productPage.total}
+        hasMore={productPage.hasMore}
+        nextCursor={productPage.nextCursor}
+        previousCursor={productPage.previousCursor}
+        initialQuery={resolvedSearch.q || ''}
+        initialStore={resolvedSearch.source || 'all'}
+        initialSort={resolvedSearch.sort || 'newest'}
+        initialMaxPrice={Number.isFinite(parsedMaxPrice) ? parsedMaxPrice : null}
+        initialCursor={resolvedSearch.cursor || null}
       />
     </>
   );

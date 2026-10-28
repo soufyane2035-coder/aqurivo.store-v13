@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useCallback, useEffect, useRef, useState } from 'react';
 import Link from 'next/link';
 import { Bot, Edit3, Plus, Trash2 } from 'lucide-react';
 import type { Article } from '@/types';
@@ -14,8 +14,14 @@ import styles from './AdminShell.module.css';
 
 export function AdminArticlesListView({
   initialArticles,
+  initialTotal,
+  initialHasMore,
+  initialNextCursor,
 }: {
   initialArticles: Article[];
+  initialTotal: number;
+  initialHasMore: boolean;
+  initialNextCursor: string | null;
 }) {
   const { locale, t } = useI18n();
   const { csrfToken } = useSaved();
@@ -23,23 +29,64 @@ export function AdminArticlesListView({
   const isAr = locale === 'ar';
 
   const [articles, setArticles] = useState(initialArticles);
+  const [total, setTotal] = useState(initialTotal);
+  const [hasMore, setHasMore] = useState(initialHasMore);
+  const [nextCursor, setNextCursor] = useState(initialNextCursor);
+  const [cursorHistory, setCursorHistory] = useState<(string | null)[]>([null]);
+  const [search, setSearch] = useState('');
+  const [statusFilter, setStatusFilter] = useState('all');
+  const [isLoadingPage, setIsLoadingPage] = useState(false);
+  const [listError, setListError] = useState<string | null>(null);
   const [deleteTarget, setDeleteTarget] = useState<Article | null>(null);
   const [togglingId, setTogglingId] = useState<string | null>(null);
+  const initialFilterSignature = useRef(JSON.stringify(['', 'all']));
+  const filterSignature = JSON.stringify([search, statusFilter]);
+  const activeListRequest = useRef<AbortController | null>(null);
 
-  React.useEffect(() => {
-    if (initialArticles && initialArticles.length > 0) {
-      setArticles(initialArticles);
+  const loadPage = useCallback(async (cursor: string | null) => {
+    activeListRequest.current?.abort();
+    const controller = new AbortController();
+    activeListRequest.current = controller;
+    setIsLoadingPage(true);
+    setListError(null);
+    try {
+      const params = new URLSearchParams({ q: search.trim(), status: statusFilter });
+      if (cursor) params.set('cursor', cursor);
+      const res = await fetch(`/api/admin/articles?${params.toString()}`, {
+        cache: 'no-store',
+        signal: controller.signal,
+      });
+      if (!res.ok) throw new Error('Unable to load articles from the server.');
+      const data = (await res.json()) as {
+        articles: Article[];
+        total: number;
+        hasMore: boolean;
+        nextCursor: string | null;
+      };
+      if (!controller.signal.aborted) {
+        setArticles(data.articles);
+        setTotal(data.total);
+        setHasMore(data.hasMore);
+        setNextCursor(data.nextCursor);
+      }
+    } catch (error) {
+      if (!controller.signal.aborted) {
+        setListError(error instanceof Error ? error.message : 'Unable to load articles.');
+      }
+    } finally {
+      if (!controller.signal.aborted) setIsLoadingPage(false);
     }
-    fetch('/api/admin/articles')
-      .then((res) => (res.ok ? res.json() : null))
-      .then((data) => {
-        const list = Array.isArray(data) ? data : data?.articles;
-        if (Array.isArray(list) && list.length > 0) {
-          setArticles(list);
-        }
-      })
-      .catch(() => undefined);
-  }, [initialArticles]);
+  }, [search, statusFilter]);
+
+  useEffect(() => {
+    if (initialFilterSignature.current === filterSignature) {
+      initialFilterSignature.current = '';
+      return;
+    }
+    setCursorHistory([null]);
+    const timer = window.setTimeout(() => void loadPage(null), search.trim() ? 250 : 0);
+    return () => window.clearTimeout(timer);
+  }, [filterSignature, loadPage, search]);
 
   const handleToggleStatus = async (article: Article) => {
     if (!csrfToken || togglingId) return;
@@ -63,8 +110,15 @@ export function AdminArticlesListView({
       });
       if (res.ok) {
         setArticles((prev) =>
-          prev.map((a) => (a.id === article.id ? { ...a, status: nextStatus } : a))
+          statusFilter !== 'all' && statusFilter !== nextStatus
+            ? prev.filter((a) => a.id !== article.id)
+            : prev.map((a) => (a.id === article.id ? { ...a, status: nextStatus } : a))
         );
+        if (statusFilter !== 'all' && statusFilter !== nextStatus) {
+          setTotal((prev) => Math.max(0, prev - 1));
+        }
+        setCursorHistory([null]);
+        void loadPage(null);
         showToast(
           isAr
             ? nextStatus === 'published'
@@ -90,7 +144,10 @@ export function AdminArticlesListView({
     );
     if (res.ok) {
       setArticles((prev) => prev.filter((a) => a.id !== deleteTarget.id));
+      setTotal((prev) => Math.max(0, prev - 1));
       setDeleteTarget(null);
+      setCursorHistory([null]);
+      void loadPage(null);
       showToast(isAr ? 'تم حذف المقال.' : 'Article deleted.', 'info');
     }
   };
@@ -116,6 +173,29 @@ export function AdminArticlesListView({
       </div>
 
       <section className={styles.card}>
+        <div className={styles.filterToolbar}>
+          <div className={styles.filterSearchInput}>
+            <input
+              type="search"
+              value={search}
+              onChange={(event) => setSearch(event.target.value)}
+              placeholder={isAr ? 'بحث بالعنوان أو المعرّف...' : 'Search by title or slug...'}
+              className={styles.selectInput}
+            />
+          </div>
+          <select
+            value={statusFilter}
+            onChange={(event) => setStatusFilter(event.target.value)}
+            className={styles.selectInput}
+            aria-label={isAr ? 'تصفية حسب الحالة' : 'Filter by status'}
+          >
+            <option value="all">{isAr ? 'كل الحالات' : 'All statuses'}</option>
+            <option value="published">{isAr ? 'منشور' : 'Published'}</option>
+            <option value="draft">{isAr ? 'مسودة' : 'Draft'}</option>
+          </select>
+        </div>
+        {listError && <p role="alert">{listError}</p>}
+        {isLoadingPage && <p role="status">{isAr ? 'جارٍ تحميل المقالات...' : 'Loading articles...'}</p>}
         {articles.length === 0 ? (
           <p className={styles.pageSubtitle}>
             {isAr ? 'لا توجد مقالات مسجلة بعد.' : 'No articles created yet.'}
@@ -293,6 +373,35 @@ export function AdminArticlesListView({
               ))}
             </div>
           </>
+        )}
+        {total > 0 && (
+          <nav className={styles.pagination} aria-label={isAr ? 'صفحات المقالات' : 'Article pages'}>
+            <button
+              type="button"
+              onClick={() => {
+                const cursor = cursorHistory[cursorHistory.length - 2] || null;
+                setCursorHistory((previous) => previous.slice(0, -1));
+                void loadPage(cursor);
+              }}
+              disabled={cursorHistory.length <= 1 || isLoadingPage}
+            >
+              {isAr ? 'السابق' : 'Previous'}
+            </button>
+            <span aria-live="polite">
+              {isAr ? `عرض ${articles.length} من ${total}` : `Showing ${articles.length} of ${total}`}
+            </span>
+            <button
+              type="button"
+              onClick={() => {
+                if (!nextCursor) return;
+                setCursorHistory((previous) => [...previous, nextCursor]);
+                void loadPage(nextCursor);
+              }}
+              disabled={!hasMore || isLoadingPage}
+            >
+              {isAr ? 'التالي' : 'Next'}
+            </button>
+          </nav>
         )}
       </section>
 

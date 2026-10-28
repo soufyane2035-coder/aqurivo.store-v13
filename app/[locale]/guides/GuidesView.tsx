@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useMemo, useState } from 'react';
+import React, { useCallback, useEffect, useRef, useState } from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
 import {
@@ -20,7 +20,6 @@ import {
 import type { Article, Category } from '@/types';
 import { useI18n } from '@/i18n/I18nProvider';
 import { formatNumber } from '@/lib/format';
-import { searchAndRankArticles } from '@/lib/productSearch';
 import { SiteHeader } from '@/components/sections/SiteHeader';
 import { SiteFooter } from '@/components/sections/SiteFooter';
 import { SignatureMotif } from '@/components/ui/SignatureMotif';
@@ -78,30 +77,106 @@ function renderGuideCategoryIcon(slug: string, nameAr = '', nameEn = '') {
 interface GuidesViewProps {
   articles: Article[];
   categories: Category[];
+  totalArticles: number;
+  catalogArticleCount: number;
+  hasMore: boolean;
+  nextCursor: string | null;
+  previousCursor: string | null;
+  categoryArticleCounts: Record<string, number>;
+  initialCategory: string;
+  initialQuery: string;
+  initialCursor: string | null;
 }
 
-export function GuidesView({ articles, categories }: GuidesViewProps) {
+export function GuidesView({
+  articles: initialArticles,
+  categories,
+  totalArticles: initialTotal,
+  catalogArticleCount,
+  hasMore: initialHasMore,
+  nextCursor: initialNextCursor,
+  previousCursor: initialPreviousCursor,
+  categoryArticleCounts,
+  initialCategory,
+  initialQuery,
+  initialCursor,
+}: GuidesViewProps) {
   const { locale, messages, t } = useI18n();
   const isAr = locale === 'ar';
-  const [selectedCategory, setSelectedCategory] = useState<string>('all');
-  const [searchQuery, setSearchQuery] = useState<string>('');
+  const [articles, setArticles] = useState(initialArticles);
+  const [selectedCategory, setSelectedCategory] = useState(initialCategory);
+  const [searchQuery, setSearchQuery] = useState(initialQuery);
+  const [total, setTotal] = useState(initialTotal);
+  const [hasMore, setHasMore] = useState(initialHasMore);
+  const [nextCursor, setNextCursor] = useState(initialNextCursor);
+  const [cursorHistory, setCursorHistory] = useState<(string | null)[]>(
+    initialCursor ? [initialPreviousCursor, initialCursor] : [null]
+  );
+  const [isLoading, setIsLoading] = useState(false);
+  const [loadError, setLoadError] = useState<string | null>(null);
+  const initialFilterSignature = useRef(JSON.stringify([initialCategory, initialQuery]));
+  const activeRequest = useRef<AbortController | null>(null);
+  const filterSignature = JSON.stringify([selectedCategory, searchQuery]);
 
-  const filteredArticles = useMemo(() => {
-    let list = articles;
-    if (selectedCategory !== 'all') {
-      list = list.filter(
-        (a) =>
-          a.categorySlug === selectedCategory || a.categoryId === selectedCategory
-      );
-    }
-    if (searchQuery.trim()) {
-      return searchAndRankArticles(list, searchQuery);
-    }
-    return list;
-  }, [articles, selectedCategory, searchQuery]);
+  const updateUrl = useCallback((cursor: string | null) => {
+    const params = new URLSearchParams(window.location.search);
+    for (const key of ['category', 'q', 'cursor']) params.delete(key);
+    if (selectedCategory !== 'all') params.set('category', selectedCategory);
+    if (searchQuery.trim()) params.set('q', searchQuery.trim());
+    if (cursor) params.set('cursor', cursor);
+    const query = params.toString();
+    window.history.replaceState(null, '', `${window.location.pathname}${query ? `?${query}` : ''}`);
+  }, [searchQuery, selectedCategory]);
 
-  const featuredArticle = filteredArticles[0];
-  const restArticles = filteredArticles.slice(1);
+  const loadPage = useCallback(async (cursor: string | null) => {
+    activeRequest.current?.abort();
+    const controller = new AbortController();
+    activeRequest.current = controller;
+    setIsLoading(true);
+    setLoadError(null);
+    const params = new URLSearchParams();
+    if (selectedCategory !== 'all') params.set('category', selectedCategory);
+    if (searchQuery.trim()) params.set('q', searchQuery.trim());
+    if (cursor) params.set('cursor', cursor);
+    try {
+      const response = await fetch(`/api/guides?${params.toString()}`, { signal: controller.signal });
+      if (!response.ok) throw new Error('Unable to load buying guides.');
+      const data = (await response.json()) as {
+        items: Article[];
+        total: number;
+        hasMore: boolean;
+        nextCursor: string | null;
+      };
+      setArticles(data.items);
+      setTotal(data.total);
+      setHasMore(data.hasMore);
+      setNextCursor(data.nextCursor);
+      updateUrl(cursor);
+    } catch (error) {
+      if (error instanceof DOMException && error.name === 'AbortError') return;
+      setLoadError(error instanceof Error ? error.message : 'Unable to load buying guides.');
+    } finally {
+      if (!controller.signal.aborted) setIsLoading(false);
+    }
+  }, [searchQuery, selectedCategory, updateUrl]);
+
+  useEffect(() => {
+    if (initialFilterSignature.current === filterSignature) {
+      initialFilterSignature.current = '';
+      return;
+    }
+    setCursorHistory([null]);
+    const timer = window.setTimeout(() => void loadPage(null), searchQuery.trim() ? 250 : 0);
+    return () => window.clearTimeout(timer);
+  }, [filterSignature, loadPage, searchQuery]);
+
+  const changePage = (cursor: string | null, direction: 'next' | 'previous') => {
+    setCursorHistory((previous) =>
+      direction === 'next' ? [...previous, cursor] : previous.slice(0, -1)
+    );
+    void loadPage(cursor);
+    document.getElementById('guides-results')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  };
 
   return (
     <div className={styles.pageShell}>
@@ -173,17 +248,12 @@ export function GuidesView({ articles, categories }: GuidesViewProps) {
                   </span>
                   <span>{messages.filters.allCategories}</span>
                   <span className={`${styles.filterBtnCount} tabularNums`}>
-                    {formatNumber(articles.length, locale)}
+                    {formatNumber(catalogArticleCount, locale)}
                   </span>
                 </button>
                 {categories.map((cat) => {
                   const isActive = selectedCategory === cat.slug;
-                  const count = articles.filter(
-                    (a) =>
-                      a.categorySlug === cat.slug ||
-                      a.categoryId === cat.slug ||
-                      a.categoryId === cat.id
-                  ).length;
+                  const count = categoryArticleCounts[cat.slug] || categoryArticleCounts[cat.id] || 0;
                   return (
                     <button
                       key={cat.id}
@@ -217,12 +287,14 @@ export function GuidesView({ articles, categories }: GuidesViewProps) {
         </header>
 
         {/* All Guides Grid */}
-        <section className={styles.articlesSection} aria-live="polite">
+        <section id="guides-results" className={styles.articlesSection} aria-live="polite">
           <SignatureMotif
             label={isAr ? 'جميع الأدلة والمراجعات' : 'All Buying Guides'}
           />
 
-          {articles.length === 0 ? (
+          {loadError && <p role="alert">{loadError}</p>}
+          {isLoading && <p role="status">{isAr ? 'جارٍ تحميل الأدلة...' : 'Loading guides...'}</p>}
+          {catalogArticleCount === 0 ? (
             <EmptyState
               title={
                 isAr
@@ -239,18 +311,10 @@ export function GuidesView({ articles, categories }: GuidesViewProps) {
               secondaryActionLabel={messages.nav.ourMethod}
               secondaryActionHref={`/${locale}/about`}
             />
-          ) : filteredArticles.length === 0 ? (
+          ) : total === 0 ? (
             <EmptyState
-              title={
-                isAr
-                  ? 'لم نجد أدلة شراء تطابق بحثك أو هذه الفئة'
-                  : 'No buying guides match your search or category'
-              }
-              description={
-                isAr
-                  ? 'جرب كلمة بحث أخرى أو اعرض جميع الأدلة المنشورة.'
-                  : 'Try another search term or view all published guides.'
-              }
+              title={isAr ? 'لا توجد أدلة مطابقة لبحثك أو هذه الفئة' : 'No guides match this search or category'}
+              description={isAr ? 'جرب كلمة بحث أخرى أو اعرض جميع الأدلة المنشورة.' : 'Try another search term or view all published guides.'}
               primaryActionLabel={messages.filters.allCategories}
               onPrimaryAction={() => {
                 setSelectedCategory('all');
@@ -259,10 +323,31 @@ export function GuidesView({ articles, categories }: GuidesViewProps) {
             />
           ) : (
             <div className={styles.grid}>
-              {filteredArticles.map((article) => (
+              {articles.map((article) => (
                 <EditorialIssueCard key={article.id} article={article} />
               ))}
             </div>
+          )}
+          {total > 0 && (
+            <nav className={styles.pagination} aria-label={isAr ? 'صفحات الأدلة' : 'Guide pages'}>
+              <button
+                type="button"
+                onClick={() => changePage(cursorHistory[cursorHistory.length - 2] || null, 'previous')}
+                disabled={cursorHistory.length <= 1 || isLoading}
+              >
+                {isAr ? 'السابق' : 'Previous'}
+              </button>
+              <span aria-live="polite">
+                {isAr ? `عرض ${articles.length} من ${formatNumber(total, locale)}` : `Showing ${articles.length} of ${formatNumber(total, locale)}`}
+              </span>
+              <button
+                type="button"
+                onClick={() => nextCursor && changePage(nextCursor, 'next')}
+                disabled={!hasMore || isLoading}
+              >
+                {isAr ? 'التالي' : 'Next'}
+              </button>
+            </nav>
           )}
         </section>
       </main>

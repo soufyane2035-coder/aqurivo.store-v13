@@ -6,6 +6,7 @@ import {
   listReportsAdmin,
 } from '@/server/repositories/reports.repo';
 import { AdminProductsListView } from '@/features/admin/AdminProductsListView';
+import { paginateByCursor, sortByCursor } from '@/lib/listPagination';
 
 export const dynamic = 'force-dynamic';
 
@@ -17,10 +18,19 @@ export default async function AdminProductsPage() {
   ]);
 
   const warningMap = computeProductWarningMap(reports);
+  const orderedProducts = sortByCursor(products, (a, b) =>
+    String(b.updatedAt || b.createdAt || '').localeCompare(
+      String(a.updatedAt || a.createdAt || '')
+    )
+  );
+  const firstPage = paginateByCursor(orderedProducts, null, 30);
 
   return (
     <AdminProductsListView
-      initialProducts={products}
+      initialProducts={firstPage.items}
+      initialTotal={firstPage.total}
+      initialHasMore={firstPage.hasMore}
+      initialNextCursor={firstPage.nextCursor}
       sources={sources}
       productWarnings={warningMap}
     />

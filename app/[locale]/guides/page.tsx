@@ -4,6 +4,7 @@ import { notFound } from 'next/navigation';
 import { listPublishedArticles } from '@/server/repositories/articles.repo';
 import { listActiveCategories } from '@/server/repositories/categories.repo';
 import { GuidesView } from './GuidesView';
+import { getArticleCatalogPage } from '@/server/services/catalog-pagination.service';
 
 export const revalidate = 86400;
 
@@ -120,18 +121,27 @@ export async function generateMetadata({
 
 export default async function LocalizedGuidesPage({
   params,
+  searchParams,
 }: {
   params: Promise<{ locale: string }>;
+  searchParams: Promise<{ category?: string; q?: string; cursor?: string }>;
 }) {
   const { locale } = await params;
   if (locale !== 'ar' && locale !== 'en') {
     notFound();
   }
 
-  const [articles, categories] = await Promise.all([
+  const [allArticles, categories, resolvedSearch] = await Promise.all([
     listPublishedArticles(),
     listActiveCategories(),
+    searchParams,
   ]);
+  const page = getArticleCatalogPage(allArticles, {
+    category: resolvedSearch.category,
+    query: resolvedSearch.q,
+    cursor: resolvedSearch.cursor,
+  });
+  const articles = page.items;
 
   const isAr = locale === 'ar';
 
@@ -149,7 +159,7 @@ export default async function LocalizedGuidesPage({
       {
         '@type': 'ItemList',
         name: isAr ? 'أدلة AQURIVO' : 'AQURIVO Buying Guides',
-        numberOfItems: articles.length,
+        numberOfItems: allArticles.length,
         itemListElement: articles.slice(0, 30).map((article, idx) => ({
           '@type': 'ListItem',
           position: idx + 1,
@@ -184,7 +194,19 @@ export default async function LocalizedGuidesPage({
         type="application/ld+json"
         dangerouslySetInnerHTML={{ __html: JSON.stringify(collectionSchemaJsonLd) }}
       />
-      <GuidesView articles={articles} categories={categories} />
+      <GuidesView
+        articles={articles}
+        categories={categories}
+        totalArticles={page.total}
+        catalogArticleCount={allArticles.length}
+        hasMore={page.hasMore}
+        nextCursor={page.nextCursor}
+        previousCursor={page.previousCursor}
+        categoryArticleCounts={page.categoryCounts}
+        initialCategory={resolvedSearch.category || 'all'}
+        initialQuery={resolvedSearch.q || ''}
+        initialCursor={resolvedSearch.cursor || null}
+      />
     </>
   );
 }

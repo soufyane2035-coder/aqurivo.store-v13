@@ -32,6 +32,8 @@ export interface FilterBarProps {
   sources?: PartnerSource[];
   initialQuery?: string;
   initialStore?: string;
+  initialSort?: string;
+  initialMaxPrice?: number | null;
   products?: Product[];
   articles?: Article[];
 }
@@ -63,6 +65,8 @@ export function FilterBar({
   sources = [],
   initialQuery = '',
   initialStore = 'all',
+  initialSort = 'newest',
+  initialMaxPrice = null,
   products = [],
   articles = [],
 }: FilterBarProps) {
@@ -72,8 +76,8 @@ export function FilterBar({
   const containerRef = useRef<HTMLDivElement | null>(null);
 
   const [searchQuery, setSearchQuery] = useState<string>(initialQuery);
-  const [sortBy, setSortBy] = useState<string>('newest');
-  const [maxPrice, setMaxPrice] = useState<number | null>(null);
+  const [sortBy, setSortBy] = useState<string>(initialSort);
+  const [maxPrice, setMaxPrice] = useState<number | null>(initialMaxPrice);
   const [activeStore, setActiveStore] = useState<string>(initialStore);
   const [openDropdown, setOpenDropdown] = useState<'sort' | 'price' | null>(null);
   const [isSearchDropdownOpen, setIsSearchDropdownOpen] = useState(false);
@@ -124,7 +128,7 @@ export function FilterBar({
     }, 200);
 
     return () => window.clearTimeout(timer);
-  }, [searchQuery, onFilterChange]);
+  }, [searchQuery, sortBy, maxPrice, activeStore, onFilterChange]);
 
   const handleSearchActionClick = () => {
     setIsSearchDropdownOpen(false);

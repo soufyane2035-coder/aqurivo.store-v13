@@ -2,16 +2,34 @@ import { NextRequest, NextResponse } from 'next/server';
 import { requireAdminApi, verifyCsrfRequest } from '@/server/middleware/security';
 import { deleteArticleAdmin, listAllArticlesAdmin, upsertArticleAdmin } from '@/server/repositories/articles.repo';
 import { sanitizePlainText, ValidationError } from '@/server/validators';
+import { paginateByCursor, sortByCursor } from '@/lib/listPagination';
 
 export const dynamic = 'force-dynamic';
 
-export async function GET() {
+export async function GET(req: NextRequest) {
   const guard = await requireAdminApi();
   if (!guard.authorized) return guard.response;
 
   try {
-    const articles = await listAllArticlesAdmin();
-    return NextResponse.json({ articles });
+    const params = req.nextUrl.searchParams;
+    const query = sanitizePlainText(params.get('q'), 120).toLocaleLowerCase();
+    const status = params.get('status') || 'all';
+    const filtered = (await listAllArticlesAdmin()).filter((article) => {
+      if (status !== 'all' && article.status !== status) return false;
+      if (query) {
+        const haystack = `${article.title.en} ${article.title.ar} ${article.slug}`.toLocaleLowerCase();
+        if (!haystack.includes(query)) return false;
+      }
+      return true;
+    });
+    const sorted = sortByCursor(filtered, (a, b) =>
+      String(b.updatedAt || '').localeCompare(String(a.updatedAt || ''))
+    );
+    const page = paginateByCursor(sorted, params.get('cursor'), 30);
+    return NextResponse.json(
+      { articles: page.items, total: page.total, hasMore: page.hasMore, nextCursor: page.nextCursor },
+      { headers: { 'Cache-Control': 'no-store, max-age=0' } }
+    );
   } catch (err) {
     const msg = err instanceof Error ? err.message : 'Unable to fetch articles.';
     return NextResponse.json({ error: msg }, { status: 500 });

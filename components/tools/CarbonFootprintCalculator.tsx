@@ -24,6 +24,7 @@ import {
   fetchBrowserCatalogSnapshots,
   getBrowserViewedProducts,
 } from '@/lib/viewedProductsStorage';
+import { calculateCarbonFootprintActionEstimates } from '@/lib/carbon-footprint-estimates';
 import styles from './CarbonFootprintCalculator.module.css';
 
 export interface CarbonFootprintCalculatorProps {
@@ -426,6 +427,15 @@ export function CarbonFootprintCalculator({
     // Gauge position (0 to 10 Tons scale)
     const gaugePct = Math.min(98, Math.max(2, (totalTons / 10) * 100));
 
+    const actionEstimates = calculateCarbonFootprintActionEstimates({
+      mobilityCo2Kg,
+      annualMobilityCostLocal,
+      energyCo2Kg,
+      annualEnergyCostLocal,
+      dietCo2Kg,
+      aviationCo2Kg,
+    });
+
     // Actionable Eco-Financial Recommendations
     const actionsList = [
       {
@@ -436,10 +446,7 @@ export function CarbonFootprintCalculator({
           'دمج المشاوير اليومية أو العمل عن بُعد يومين أسبوعياً يختصر ربع استهلاك الوقود وصيانة المركبة.',
         descEn:
           'Batching errands or working remotely 2 days a week cuts fuel burn and vehicle wear by 25%.',
-        co2SavedKg: Math.round(Math.max(180, mobilityCo2Kg * 0.25)),
-        moneySavedLocal: Math.round(
-          Math.max(120 * activeCurrency.usdRate, annualMobilityCostLocal * 0.25)
-        ),
+        ...actionEstimates.smartCommute,
       },
       {
         id: 'acAndLed',
@@ -449,32 +456,27 @@ export function CarbonFootprintCalculator({
           'رفع درجة التكييف درجتين فقط وفصل الأجهزة في وضع الاستعداد يخفض فاتورة الكهرباء بنسبة 22%.',
         descEn:
           'Raising thermostat by 2°C and eliminating vampire standby loads cuts electricity bills by 22%.',
-        co2SavedKg: Math.round(Math.max(210, energyCo2Kg * 0.22)),
-        moneySavedLocal: Math.round(
-          Math.max(95 * activeCurrency.usdRate, annualEnergyCostLocal * 0.22)
-        ),
+        ...actionEstimates.acAndLed,
       },
       {
         id: 'ecoDietShift',
         titleAr: 'موازنة النظام الغذائي وتقليل هدر الطعام المنزلي',
         titleEn: 'Shift 2 Meals/Week to Plant-Based & Cut Food Waste',
         descAr:
-          'تخفيف الهدر الغذائي واستبدال وجبتين من اللحوم الحمراء أسبوعياً يوفر في ميزانية البقالة ويخفض الانبعاثات.',
+          'تخفيف الهدر الغذائي واستبدال وجبتين من اللحوم الحمراء أسبوعياً يخفض الانبعاثات.',
         descEn:
-          'Eliminating kitchen food waste and swapping 2 red-meat meals weekly lowers grocery spend and methane.',
-        co2SavedKg: Math.round(Math.max(320, dietCo2Kg * 0.24)),
-        moneySavedLocal: Math.round(310 * activeCurrency.usdRate),
+          'Eliminating kitchen food waste and swapping 2 red-meat meals weekly lowers emissions.',
+        ...actionEstimates.ecoDietShift,
       },
       {
         id: 'flightOptimize',
         titleAr: 'اختيار الرحلات المباشرة أو استبدال رحلة قصيرة باجتماع رقمي',
         titleEn: 'Fly Direct Routes or Replace 1 Short Flight with Virtual/Rail',
         descAr:
-          'الإقلاع والهبوط يستهلكان النسبة الأكبر من وقود الطائرات؛ الرحلات المباشرة توفر الوقت والمال والكربون.',
+          'الإقلاع والهبوط يستهلكان النسبة الأكبر من وقود الطائرات؛ الرحلات المباشرة توفر الوقت والكربون.',
         descEn:
-          'Takeoff and climb burn the most jet fuel; choosing non-stop routes saves ticket cost and aviation CO₂.',
-        co2SavedKg: Math.round(Math.max(260, aviationCo2Kg * 0.28)),
-        moneySavedLocal: Math.round(280 * activeCurrency.usdRate),
+          'Takeoff and climb burn the most jet fuel; choosing non-stop routes saves time and aviation CO₂.',
+        ...actionEstimates.flightOptimize,
       },
     ];
 
@@ -1251,6 +1253,7 @@ export function CarbonFootprintCalculator({
                     key={act.id}
                     type="button"
                     onClick={() => toggleAction(act.id)}
+                    aria-pressed={isChecked}
                     className={`${styles.actionRowBtn} ${
                       isChecked ? styles.actionRowBtnActive : ''
                     }`}
@@ -1264,14 +1267,16 @@ export function CarbonFootprintCalculator({
                           {isAr ? act.titleAr : act.titleEn}
                         </span>
                         <div className={styles.actionBadgesWrap}>
-                          <span className={styles.actionMoneyBadge}>
-                            +
-                            {formatCurrencyAmount(
-                              act.moneySavedLocal,
-                              activeCurrency,
-                              locale
-                            )}
-                          </span>
+                          {act.moneySavedLocal > 0 && (
+                            <span className={styles.actionMoneyBadge}>
+                              +
+                              {formatCurrencyAmount(
+                                act.moneySavedLocal,
+                                activeCurrency,
+                                locale
+                              )}
+                            </span>
+                          )}
                           <span className={styles.actionCo2Badge}>
                             −{act.co2SavedKg} kg CO₂
                           </span>

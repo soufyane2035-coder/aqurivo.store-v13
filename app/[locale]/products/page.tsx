@@ -7,6 +7,7 @@ import { listActiveSources } from '@/server/repositories/sources.repo';
 import { listPublishedArticles } from '@/server/repositories/articles.repo';
 import { CatalogView } from '@/features/catalog/CatalogView';
 import { buildProductSchemaJson } from '@/lib/productSchema';
+import { getProductCatalogPage } from '@/server/services/catalog-pagination.service';
 import type { Locale } from '@/types';
 
 export const revalidate = 86400;
@@ -126,20 +127,38 @@ export default async function LocalizedProductsPage({
   searchParams,
 }: {
   params: Promise<{ locale: string }>;
-  searchParams: Promise<{ category?: string; source?: string; q?: string }>;
+  searchParams: Promise<{
+    category?: string;
+    source?: string;
+    q?: string;
+    sort?: string;
+    maxPrice?: string;
+    cursor?: string;
+  }>;
 }) {
   const { locale } = await params;
   if (locale !== 'ar' && locale !== 'en') {
     notFound();
   }
 
-  const [resolvedSearch, products, categories, sources, articles] = await Promise.all([
+  const [resolvedSearch, allProducts, categories, sources, allArticles] = await Promise.all([
     searchParams,
     listPublishedProducts(),
     listActiveCategories(),
     listActiveSources(),
     listPublishedArticles(),
   ]);
+  const parsedMaxPrice = resolvedSearch.maxPrice ? Number(resolvedSearch.maxPrice) : null;
+  const page = getProductCatalogPage(allProducts, allArticles, {
+    category: resolvedSearch.category,
+    source: resolvedSearch.source,
+    query: resolvedSearch.q,
+    sort: resolvedSearch.sort,
+    maxPrice: Number.isFinite(parsedMaxPrice) ? parsedMaxPrice : null,
+    cursor: resolvedSearch.cursor || null,
+  });
+  const products = page.items;
+  const articles = allArticles.slice(0, 24);
 
   const isEn = locale === 'en';
   const canonicalUrl = `${SITE_URL}/${isEn ? 'en' : 'ar'}/products`;
@@ -159,7 +178,7 @@ export default async function LocalizedProductsPage({
       {
         '@type': 'ItemList',
         name: isEn ? 'AQURIVO Curated Products' : 'منتجات AQURIVO المنتقاة',
-        numberOfItems: products.length,
+        numberOfItems: allProducts.length,
         itemListElement: products.slice(0, 50).map((product, index) => {
           const prodSlug = encodeURIComponent(product.slug || product.id);
           const prodUrl = `${SITE_URL}/${isEn ? 'en' : 'ar'}/products/${prodSlug}`;
@@ -210,9 +229,19 @@ export default async function LocalizedProductsPage({
         categories={categories}
         sources={sources}
         articles={articles}
+        totalProducts={page.total}
+        catalogProductCount={allProducts.length}
+        hasMore={page.hasMore}
+        nextCursor={page.nextCursor}
+        previousCursor={page.previousCursor}
+        categoryProductCounts={page.categoryCounts}
+        initialMatchedArticles={page.matchedArticles}
         initialCategorySlug={resolvedSearch.category || 'all'}
         initialSourceSlug={resolvedSearch.source || 'all'}
         initialSearchQuery={resolvedSearch.q || ''}
+        initialSort={resolvedSearch.sort || 'newest'}
+        initialMaxPrice={Number.isFinite(parsedMaxPrice) ? parsedMaxPrice : null}
+        initialCursor={resolvedSearch.cursor || null}
       />
     </>
   );
