@@ -88,13 +88,13 @@
 .storeSearchTriggerBtnActive {
   background-color: var(--color-accent-primary);
   border-color: var(--color-accent-primary);
-  color: #ffffff;
+  color: var(--color-text-on-accent);
 }
 
 .storeSearchTriggerBtnActive:hover {
   background-color: var(--color-accent-primary);
   border-color: var(--color-accent-primary);
-  color: #ffffff;
+  color: var(--color-text-on-accent);
   opacity: 0.92;
 }
 

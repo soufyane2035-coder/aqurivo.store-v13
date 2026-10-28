@@ -177,7 +177,7 @@
 }
 
 .filterBtnActive .filterBtnIcon {
-  color: #ffffff;
+  color: var(--color-text-on-accent);
 }
 
 .filterBtnCount {
@@ -197,7 +197,7 @@
 
 .filterBtnActive .filterBtnCount {
   background-color: rgba(255, 255, 255, 0.22);
-  color: #ffffff;
+  color: var(--color-text-on-accent);
 }
 
 /* Featured Guide Hero Card */

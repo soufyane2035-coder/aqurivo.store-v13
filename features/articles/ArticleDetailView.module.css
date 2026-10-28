@@ -431,7 +431,7 @@
   margin-block: var(--space-5);
   margin-inline: 0;
   padding: var(--space-3);
-  background-color: #ffffff;
+  background-color: var(--color-bg-elevated);
   border: 1px solid var(--color-border-hairline);
   border-radius: var(--radius-md);
   box-shadow: var(--shadow-card);
@@ -472,7 +472,7 @@
 
 .proseContent figcaption {
   font-size: var(--text-xs);
-  color: #475569;
+  color: var(--color-text-secondary);
   text-align: center;
   line-height: 1.5;
   padding-block-start: var(--space-2);

@@ -203,17 +203,13 @@ const fetchPublishedProductsFromStore = async (): Promise<Product[]> => {
   const db = getAdminDb();
   if (!db) return [];
 
-  try {
-    const snap = await db.collection(COLLECTION).where('status', '==', 'published').get();
-    const items = snap.docs.map((doc) =>
-      normalizeProductDoc(doc.id, doc.data() as Omit<Product, 'id'>)
-    );
-    return items.sort((a, b) =>
-      String(b.createdAt || '').localeCompare(String(a.createdAt || ''))
-    );
-  } catch {
-    return [];
-  }
+  const snap = await db.collection(COLLECTION).where('status', '==', 'published').get();
+  const items = snap.docs.map((doc) =>
+    normalizeProductDoc(doc.id, doc.data() as Omit<Product, 'id'>)
+  );
+  return items.sort((a, b) =>
+    String(b.createdAt || '').localeCompare(String(a.createdAt || ''))
+  );
 };
 
 const getCachedPublishedProductsFromDataCache = unstable_cache(
@@ -565,4 +561,3 @@ export async function listPublishedProductsSlim(): Promise<ProductCardDto[]> {
     createdAt: p.createdAt,
   }));
 }
-

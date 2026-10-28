@@ -215,7 +215,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         />
         <script
           dangerouslySetInnerHTML={{
-            __html: `(function(){try{var s=localStorage.getItem('aqurivo_theme')||localStorage.getItem('soufshop_theme');var d=s==='dark'||(!s&&window.matchMedia('(prefers-color-scheme: dark)').matches);var c=d?'dark':'light';document.documentElement.classList.add(c);document.documentElement.setAttribute('data-theme',c);}catch(e){}})();`,
+            __html: `(function(){var s=null;try{s=localStorage.getItem('aqurivo_theme')||localStorage.getItem('soufshop_theme');}catch(e){}var d=s==='dark'||(s!=='light'&&window.matchMedia('(prefers-color-scheme: dark)').matches);var c=d?'dark':'light';document.documentElement.classList.add(c);document.documentElement.setAttribute('data-theme',c);})();`,
           }}
         />
         <script

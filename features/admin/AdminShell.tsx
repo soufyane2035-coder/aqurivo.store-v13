@@ -374,9 +374,14 @@ export function AdminShell({
 
             <button
               type="button"
-              onClick={toggleTheme}
+              onClick={(event) => {
+                const rect = event.currentTarget.getBoundingClientRect();
+                toggleTheme({ x: rect.left + rect.width / 2, y: rect.top + rect.height / 2 });
+              }}
               className={styles.topBarBtn}
-              aria-label="Toggle theme"
+              aria-label={theme === 'dark' ? (isAr ? 'التبديل إلى المظهر الفاتح' : 'Switch to light theme') : (isAr ? 'التبديل إلى المظهر الداكن' : 'Switch to dark theme')}
+              aria-pressed={theme === 'dark'}
+              title={theme === 'dark' ? (isAr ? 'التبديل إلى المظهر الفاتح' : 'Switch to light theme') : (isAr ? 'التبديل إلى المظهر الداكن' : 'Switch to dark theme')}
             >
               {theme === 'light' ? <Moon size={16} /> : <Sun size={16} />}
             </button>

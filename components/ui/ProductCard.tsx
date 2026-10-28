@@ -2,10 +2,15 @@
 
 import React from 'react';
 import Link from 'next/link';
+import { useRouter } from 'next/navigation';
 import { CheckCircle2, Heart, ShoppingCart } from 'lucide-react';
 import type { LocalizedText, Product, PromoBadgeType } from '@/types';
 import { useI18n } from '@/i18n/I18nProvider';
 import { formatNumber, formatProductPrice } from '@/lib/format';
+import {
+  getProductHeroTransitionName,
+  canUseProductHeroTransition,
+} from '@/lib/productHeroTransition';
 import {
   buildSnapshotFromProduct,
   recordBrowserProductView,
@@ -66,6 +71,7 @@ export function ProductCard({
   refContext = 'catalog_card',
 }: ProductCardProps) {
   const { locale, messages, t, currency } = useI18n();
+  const router = useRouter();
   const isAr = locale === 'ar';
   const [imgError, setImgError] = React.useState(false);
 
@@ -176,6 +182,9 @@ export function ProductCard({
       : '';
 
   const productId = product?.id || product?.slug || resolvedTitle;
+  const productHeroTransitionName = getProductHeroTransitionName(
+    product?.slug || product?.id || targetSlug || productId
+  );
 
   const handleRecordView = () => {
     if (!product) return;
@@ -185,6 +194,39 @@ export function ProductCard({
     }
   };
 
+  const handleProductNavigation = React.useCallback(
+    (event: React.MouseEvent<HTMLAnchorElement>) => {
+      if (!detailHref || !productHeroTransitionName || !showImage) {
+        handleRecordView();
+        return;
+      }
+
+      const supportsSharedTransition =
+        canUseProductHeroTransition() &&
+        typeof document !== 'undefined' &&
+        typeof document.startViewTransition === 'function';
+
+      if (!supportsSharedTransition) {
+        handleRecordView();
+        return;
+      }
+
+      event.preventDefault();
+      handleRecordView();
+
+      const navigate = () => {
+        router.push(detailHref);
+      };
+
+      try {
+        document.startViewTransition(navigate);
+      } catch {
+        navigate();
+      }
+    },
+    [detailHref, handleRecordView, productHeroTransitionName, router, showImage]
+  );
+
   return (
     <article className={styles.card}>
       {/* 1. Image Area */}
@@ -193,7 +235,7 @@ export function ProductCard({
           <Link
             href={detailHref}
             prefetch={false}
-            onClick={handleRecordView}
+            onClick={handleProductNavigation}
             className={styles.mediaLink}
             aria-label={resolvedTitle}
           >
@@ -202,6 +244,10 @@ export function ProductCard({
                 src={resolvedImageUrl}
                 alt={resolvedImageAlt || resolvedTitle}
                 className={styles.productImage}
+                style={{
+                  viewTransitionName: productHeroTransitionName || undefined,
+                  contain: 'layout paint',
+                }}
                 referrerPolicy="no-referrer"
                 loading="lazy"
                 onError={() => setImgError(true)}
@@ -274,7 +320,7 @@ export function ProductCard({
               <Link
                 href={detailHref}
                 prefetch={false}
-                onClick={handleRecordView}
+                onClick={handleProductNavigation}
                 className={styles.titleLink}
               >
                 {resolvedTitle}

@@ -81,9 +81,14 @@ export function SiteHeader({ savedCount }: { savedCount?: number }) {
 
           <button
             type="button"
-            onClick={toggleTheme}
+            onClick={(event) => {
+              const rect = event.currentTarget.getBoundingClientRect();
+              toggleTheme({ x: rect.left + rect.width / 2, y: rect.top + rect.height / 2 });
+            }}
             className={styles.iconBtn}
             aria-label={mounted && theme === 'dark' ? messages.nav.themeLight : messages.nav.themeDark}
+            aria-pressed={mounted && theme === 'dark'}
+            title={mounted && theme === 'dark' ? messages.nav.themeLight : messages.nav.themeDark}
           >
             {mounted && theme === 'dark' ? (
               <Sun size={18} aria-hidden="true" />

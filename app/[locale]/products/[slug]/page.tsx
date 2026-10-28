@@ -779,6 +779,7 @@ export default async function ProductPage({
               videos={product.videos}
               productTitle={name}
               locale={locale}
+              heroTransitionId={product.slug || product.id || productSlug}
             />
             {getProductVideoSources(product, locale, BASE_URL).length > 0 && (
               <Link

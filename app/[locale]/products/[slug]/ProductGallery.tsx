@@ -3,6 +3,7 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { ChevronLeft, ChevronRight } from 'lucide-react';
 import { sanitizeMediaUrl, getCanonicalImageFingerprint } from '@/lib/magicContentParser';
+import { getProductHeroTransitionName } from '@/lib/productHeroTransition';
 import styles from './ProductPage.module.css';
 
 interface GalleryImage {
@@ -23,6 +24,7 @@ interface ProductGalleryProps {
   videos?: GalleryVideoItem[];
   productTitle: string;
   locale?: 'ar' | 'en';
+  heroTransitionId?: string | null;
 }
 
 function isHlsVideoStreamUrl(rawUrl: string): boolean {
@@ -217,6 +219,7 @@ export function ProductGallery({
   videos,
   productTitle,
   locale = 'ar',
+  heroTransitionId,
 }: ProductGalleryProps) {
   const [activeIndex, setActiveIndex] = useState(0);
   const [playingVideoSlideId, setPlayingVideoSlideId] = useState<string | null>(null);
@@ -576,6 +579,7 @@ export function ProductGallery({
 
   const showThumbnails = totalSlides > 1;
   const currentSlide = allSlides[clampedIndex];
+  const heroTransitionName = getProductHeroTransitionName(heroTransitionId);
 
   return (
     <div
@@ -606,6 +610,11 @@ export function ProductGallery({
         >
           {allSlides.map((slide, sIdx) => {
             const isSlidePlaying = slide.type === 'video' && playingVideoSlideId === slide.id;
+            const isPrimaryHeroImage =
+              slide.type === 'image' &&
+              sIdx === 0 &&
+              Boolean(heroTransitionName) &&
+              Boolean(slide.url);
 
             return (
               <div
@@ -694,6 +703,14 @@ export function ProductGallery({
                     fetchPriority={sIdx === 0 ? 'high' : 'auto'}
                     decoding="sync"
                     className={styles.mainImage}
+                    style={
+                      isPrimaryHeroImage
+                        ? {
+                            viewTransitionName: heroTransitionName || undefined,
+                            contain: 'layout paint',
+                          }
+                        : undefined
+                    }
                     referrerPolicy="no-referrer"
                     loading={sIdx === 0 ? 'eager' : 'lazy'}
                     draggable={false}

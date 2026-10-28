@@ -10,7 +10,7 @@
   /* 30% Structural Surfaces & Typography */
   --color-text-primary: #141817;
   --color-text-secondary: #4e5653;
-  --color-text-muted: #6c7571;
+  --color-text-muted: #6a736f;
   --color-text-on-accent: #ffffff;
 
   --color-border-hairline: #e4e1d8;
@@ -121,7 +121,7 @@ body.dark {
   /* 30% Structural Surfaces & Typography */
   --color-text-primary: #F9FAFB;
   --color-text-secondary: #9CA3AF;
-  --color-text-muted: #6B7280;
+  --color-text-muted: #8b949e;
   --color-text-on-accent: #081c17;
 
   --color-border-hairline: rgba(249, 250, 251, 0.08);

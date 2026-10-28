@@ -4,17 +4,17 @@
 
 /* Base Page Wrapper & Theme Variables */
 .pageWrapper {
-  --bg-primary: #0d1117;
-  --bg-card: #111827;
-  --text-primary: #F9FAFB;
-  --text-secondary: #9CA3AF;
-  --accent: #2DD4BF;
-  --accent-gold: #F59E0B;
-  --border-subtle: rgba(255, 255, 255, 0.06);
+  --bg-primary: var(--color-bg-canvas);
+  --bg-card: var(--color-bg-elevated);
+  --text-primary: var(--color-text-primary);
+  --text-secondary: var(--color-text-secondary);
+  --accent: var(--color-accent-primary);
+  --accent-gold: var(--color-status-warning-text);
+  --border-subtle: var(--color-border-hairline);
 
   /* Helper aliases */
   --border-color: var(--border-subtle);
-  --safe-badge-bg: rgba(45, 212, 191, 0.1);
+  --safe-badge-bg: var(--color-accent-subtle);
 
   min-height: 100vh;
   width: 100%;
@@ -26,38 +26,6 @@
   font-family: var(--font-cairo), var(--font-inter), sans-serif;
   padding-bottom: 96px; /* Space for mobile sticky buy bar */
   transition: background-color 0.2s ease, color 0.2s ease;
-}
-
-/* Dark Mode Variables */
-:global(.dark) .pageWrapper,
-:global(html.dark) .pageWrapper,
-:global(body.dark) .pageWrapper,
-:global([data-theme="dark"]) .pageWrapper {
-  --bg-primary: #0d1117;
-  --bg-card: #111827;
-  --text-primary: #F9FAFB;
-  --text-secondary: #9CA3AF;
-  --accent: #2DD4BF;
-  --accent-gold: #F59E0B;
-  --border-subtle: rgba(255, 255, 255, 0.06);
-  --border-color: var(--border-subtle);
-  --safe-badge-bg: rgba(45, 212, 191, 0.1);
-}
-
-/* Light Mode Variables */
-:global(.light) .pageWrapper,
-:global(html.light) .pageWrapper,
-:global(body.light) .pageWrapper,
-:global([data-theme="light"]) .pageWrapper {
-  --bg-primary: #f5f5f5;
-  --bg-card: #ffffff;
-  --text-primary: #1a1a2e;
-  --text-secondary: #555566;
-  --accent: #2DD4BF;
-  --accent-gold: #F59E0B;
-  --border-subtle: rgba(0, 0, 0, 0.08);
-  --border-color: var(--border-subtle);
-  --safe-badge-bg: rgba(45, 212, 191, 0.15);
 }
 
 .container {
@@ -268,8 +236,8 @@
   border-radius: 50%;
   background: rgba(15, 23, 42, 0.88);
   backdrop-filter: blur(8px);
-  border: 2px solid #2DD4BF;
-  color: #2DD4BF;
+  border: 2px solid var(--accent);
+  color: var(--accent);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -279,8 +247,8 @@
 
 .videoSlideCover:hover .videoSlidePlayCircle {
   transform: scale(1.1);
-  background: rgba(45, 212, 191, 0.95);
-  color: #042f2e;
+  background: var(--accent);
+  color: var(--color-text-on-accent);
 }
 
 .videoSlideBadge {
@@ -342,9 +310,9 @@
 }
 
 .galleryNavBtn:hover {
-  background: rgba(45, 212, 191, 0.95);
-  color: #042f2e;
-  border-color: #2dd4bf;
+  background: var(--accent);
+  color: var(--color-text-on-accent);
+  border-color: var(--accent);
   transform: translateY(-50%) scale(1.1);
   box-shadow: 0 6px 18px rgba(45, 212, 191, 0.4);
 }
@@ -424,7 +392,7 @@
 }
 
 .dotActive {
-  background-color: #2DD4BF;
+  background-color: var(--accent);
   transform: scale(1.25);
 }
 
@@ -540,7 +508,7 @@
 
 .videoCloseBtn:hover {
   background-color: var(--accent);
-  color: #000000;
+  color: var(--color-text-on-accent);
   transform: scale(1.04);
 }
 
@@ -558,7 +526,7 @@
   align-items: center;
   justify-content: center;
   position: relative;
-  color: #2DD4BF;
+  color: var(--accent);
   transition: border-color 0.18s ease, transform 0.18s ease, box-shadow 0.18s ease;
 }
 
@@ -613,7 +581,7 @@
 .videoThumbnailPlayIcon {
   font-size: 12px;
   line-height: 1;
-  color: #2DD4BF;
+  color: var(--accent);
   margin-inline-start: 2px;
 }
 
@@ -746,8 +714,8 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  background-color: #2DD4BF;
-  color: #000000;
+  background-color: var(--accent);
+  color: var(--color-text-on-accent);
   font-family: inherit;
   font-size: 18px;
   font-weight: 700;
@@ -1026,7 +994,7 @@
   line-height: 1.45;
   color: var(--text-primary);
   margin: 0;
-  border-inline-start: 3px solid #2DD4BF;
+  border-inline-start: 3px solid var(--accent);
   padding-inline-start: 12px;
 }
 
@@ -1071,7 +1039,7 @@
   line-height: 1.45;
   color: var(--text-primary);
   margin-block: 0 14px;
-  border-inline-start: 3px solid #2DD4BF;
+  border-inline-start: 3px solid var(--accent);
   padding-inline-start: 12px;
 }
 
@@ -1127,7 +1095,7 @@
   line-height: 1.45;
   color: var(--text-primary);
   margin-block: 0 12px;
-  border-inline-start: 3px solid #2DD4BF;
+  border-inline-start: 3px solid var(--accent);
   padding-inline-start: 12px;
 }
 
@@ -1208,7 +1176,7 @@
 .stickyPrice {
   font-size: 15px;
   font-weight: 800;
-  color: #2DD4BF;
+  color: var(--accent);
 }
 
 .stickyButton {
@@ -1216,8 +1184,8 @@
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  background-color: #2DD4BF;
-  color: #000000;
+  background-color: var(--accent);
+  color: var(--color-text-on-accent);
   font-family: inherit;
   font-size: 14.5px;
   font-weight: 700;
@@ -1354,8 +1322,8 @@
 }
 
 .similarViewButton:hover {
-  background-color: #2DD4BF;
-  color: #000000;
+  background-color: var(--accent);
+  color: var(--color-text-on-accent);
 }
 
 /* Related Buying Guides on Product Page */

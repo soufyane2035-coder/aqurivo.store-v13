@@ -337,7 +337,7 @@
 
 .currencyModeBtnActive {
   background-color: var(--color-accent-primary);
-  color: #ffffff;
+  color: var(--color-text-on-accent);
 }
 
 /* 3. MAIN WORKBENCH GRID */
@@ -687,7 +687,7 @@
 .regionTabBtnActive {
   background-color: var(--color-accent-primary);
   border-color: var(--color-accent-primary);
-  color: #ffffff;
+  color: var(--color-text-on-accent);
 }
 
 .countriesScrollList {

@@ -4,9 +4,14 @@ import React, { createContext, useCallback, useContext, useEffect, useState } fr
 
 type ResolvedTheme = 'light' | 'dark';
 
+interface ThemeToggleOrigin {
+  x: number;
+  y: number;
+}
+
 interface ThemeContextValue {
   theme: ResolvedTheme;
-  toggleTheme: () => void;
+  toggleTheme: (origin?: ThemeToggleOrigin) => void;
   setTheme: (nextTheme: ResolvedTheme) => void;
 }
 
@@ -23,6 +28,15 @@ function applyThemeToDom(targetTheme: ResolvedTheme) {
   if (document.body) {
     document.body.classList.remove('light', 'dark');
     document.body.classList.add(targetTheme);
+  }
+}
+
+function persistTheme(targetTheme: ResolvedTheme) {
+  try {
+    window.localStorage.setItem(THEME_STORAGE_KEY, targetTheme);
+    window.localStorage.removeItem(LEGACY_THEME_STORAGE_KEY);
+  } catch (error) {
+    console.error('Unable to save the selected theme.', error);
   }
 }
 
@@ -80,54 +94,100 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
   const [theme, setThemeState] = useState<ResolvedTheme>('light');
 
   useEffect(() => {
+    let savedTheme: string | null = null;
+    let legacyTheme: string | null = null;
+
     try {
-      const saved =
-        window.localStorage.getItem(THEME_STORAGE_KEY) ||
-        window.localStorage.getItem(LEGACY_THEME_STORAGE_KEY);
-      const targetTheme: ResolvedTheme =
-        saved === 'light' || saved === 'dark'
-          ? saved
-          : window.matchMedia('(prefers-color-scheme: dark)').matches
-            ? 'dark'
-            : 'light';
-      applyThemeToDom(targetTheme);
-      // Migrate legacy key if found
-      if (window.localStorage.getItem(LEGACY_THEME_STORAGE_KEY)) {
-        window.localStorage.setItem(THEME_STORAGE_KEY, targetTheme);
-        window.localStorage.removeItem(LEGACY_THEME_STORAGE_KEY);
-      }
-      queueMicrotask(() => {
-        setThemeState(targetTheme);
-      });
-    } catch {
-      // Ignore storage errors
+      savedTheme = window.localStorage.getItem(THEME_STORAGE_KEY);
+      legacyTheme = window.localStorage.getItem(LEGACY_THEME_STORAGE_KEY);
+    } catch (error) {
+      console.error('Unable to read the saved theme.', error);
     }
+
+    const storedTheme =
+      savedTheme === 'light' || savedTheme === 'dark'
+        ? savedTheme
+        : legacyTheme === 'light' || legacyTheme === 'dark'
+          ? legacyTheme
+          : null;
+    const targetTheme: ResolvedTheme =
+      storedTheme ??
+      (window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light');
+
+    applyThemeToDom(targetTheme);
+    setThemeState(targetTheme);
+    if (legacyTheme) {
+      persistTheme(targetTheme);
+    }
+
+    const handleStorage = (event: StorageEvent) => {
+      if (event.key !== THEME_STORAGE_KEY && event.key !== LEGACY_THEME_STORAGE_KEY) return;
+      if (event.newValue !== 'light' && event.newValue !== 'dark') return;
+      applyThemeToDom(event.newValue);
+      setThemeState(event.newValue);
+    };
+    window.addEventListener('storage', handleStorage);
+    return () => window.removeEventListener('storage', handleStorage);
   }, []);
 
   const setTheme = useCallback((nextTheme: ResolvedTheme) => {
     setThemeState(nextTheme);
     applyThemeToDom(nextTheme);
-    try {
-      window.localStorage.setItem(THEME_STORAGE_KEY, nextTheme);
-      window.localStorage.removeItem(LEGACY_THEME_STORAGE_KEY);
-    } catch {
-      // Ignore storage write errors
-    }
+    persistTheme(nextTheme);
   }, []);
 
-  const toggleTheme = useCallback(() => {
-    setThemeState((prev) => {
-      const next: ResolvedTheme = prev === 'light' ? 'dark' : 'light';
+  const toggleTheme = useCallback((origin?: ThemeToggleOrigin) => {
+    const next: ResolvedTheme = theme === 'light' ? 'dark' : 'light';
+    const updateTheme = () => {
+      setThemeState(next);
       applyThemeToDom(next);
-      try {
-        window.localStorage.setItem(THEME_STORAGE_KEY, next);
-        window.localStorage.removeItem(LEGACY_THEME_STORAGE_KEY);
-      } catch {
-        // Ignore storage write errors
-      }
-      return next;
-    });
-  }, []);
+      persistTheme(next);
+    };
+
+    const view = document as Document & {
+      startViewTransition?: (update: () => void) => { ready: Promise<void>; finished: Promise<void> };
+    };
+    const prefersReducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+    if (!origin || prefersReducedMotion || typeof view.startViewTransition !== 'function') {
+      updateTheme();
+      return;
+    }
+
+    const root = document.documentElement;
+    const x = Math.round(origin.x);
+    const y = Math.round(origin.y);
+    const endX = Math.max(x, window.innerWidth - x);
+    const endY = Math.max(y, window.innerHeight - y);
+    const radius = Math.ceil(Math.hypot(endX, endY));
+
+    root.style.setProperty('--aq-theme-x', `${x}px`);
+    root.style.setProperty('--aq-theme-y', `${y}px`);
+    root.style.setProperty('--aq-theme-radius', `${radius}px`);
+    root.dataset.themeTransition = next;
+
+    const clearTransitionOrigin = () => {
+      delete root.dataset.themeTransition;
+      root.style.removeProperty('--aq-theme-x');
+      root.style.removeProperty('--aq-theme-y');
+      root.style.removeProperty('--aq-theme-radius');
+    };
+
+    try {
+      const transition = view.startViewTransition(updateTheme);
+      void transition.finished.then(
+        clearTransitionOrigin,
+        (error: unknown) => {
+          clearTransitionOrigin();
+          console.error('Theme transition failed.', error);
+        }
+      );
+    } catch (error) {
+      clearTransitionOrigin();
+      console.error('Theme transition could not start.', error);
+      updateTheme();
+    }
+  }, [theme]);
 
   return (
     <ThemeContext.Provider value={{ theme, toggleTheme, setTheme }}>
