@@ -1,0 +1,18 @@
+{
+  "servers": {
+    "aqurivo": {
+      "type": "stdio",
+      "command": "node",
+      "args": [
+        "--conditions=react-server",
+        "--import",
+        "tsx",
+        "mcp/server.ts"
+      ],
+      "cwd": "${workspaceFolder}",
+      "env": {
+        "AQURIVO_MCP_TARGET": "local"
+      }
+    }
+  }
+}

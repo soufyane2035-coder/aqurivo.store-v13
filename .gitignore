@@ -2,6 +2,8 @@ node_modules/
 .next/
 coverage/
 .aistudio/
+.aqurivo-mcp/
+graphify-out/
 .DS_Store
 *.tsbuildinfo
 *.log

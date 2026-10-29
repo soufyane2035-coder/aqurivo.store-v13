@@ -8,6 +8,11 @@ This contains everything you need to run your app locally.
 
 View your app in AI Studio: https://ai.studio/apps/ac1bc32d-9976-4836-b98e-144385bbef4b
 
+## AQURIVO MCP
+
+For the local VS Code/GitHub Copilot administration server, see
+[docs/AQURIVO_MCP.md](docs/AQURIVO_MCP.md).
+
 ## Run Locally
 
 **Prerequisites:**  Node.js

@@ -10,6 +10,7 @@ import { formatNumber, formatProductPrice } from '@/lib/format';
 import {
   canUseProductHeroTransition,
   getProductHeroTransitionName,
+  resolveProductHeroTransitionKey,
 } from '@/lib/productHeroTransition';
 import {
   buildSnapshotFromProduct,
@@ -182,8 +183,12 @@ export function ProductCard({
       : '';
 
   const productId = product?.id || product?.slug || resolvedTitle;
+  const productHeroTransitionKey = resolveProductHeroTransitionKey(
+    product?.slug,
+    product?.id || targetSlug || productId
+  );
   const productHeroTransitionName = getProductHeroTransitionName(
-    product?.slug || product?.id || targetSlug || productId
+    productHeroTransitionKey
   );
 
   const handleRecordView = () => {
@@ -217,8 +222,9 @@ export function ProductCard({
     }
 
     const view = document as Document & {
-      startViewTransition?: (update: () => void) => {
+      startViewTransition?: (update: () => void | Promise<void>) => {
         ready: Promise<void>;
+        finished: Promise<void>;
       };
     };
     if (typeof view.startViewTransition !== 'function') return;

@@ -1,3 +1,11 @@
+export function resolveProductHeroTransitionKey(
+  productKey?: string | number | null,
+  fallbackKey?: string | number | null
+): string | null {
+  const candidate = String(productKey ?? fallbackKey ?? '').trim();
+  return candidate.length > 0 ? candidate : null;
+}
+
 export function getProductHeroTransitionName(
   productKey?: string | null
 ): string | null {

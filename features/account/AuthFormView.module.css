@@ -12,6 +12,145 @@
   justify-content: center;
 }
 
+.authMain {
+  display: grid;
+  grid-template-columns: minmax(230px, 0.8fr) minmax(0, 480px);
+  align-items: center;
+  justify-content: center;
+  gap: clamp(var(--space-5), 4vw, var(--space-12));
+  width: 100%;
+  max-inline-size: 960px;
+  padding-block: clamp(var(--space-8), 7vh, var(--space-16));
+}
+
+.characterScene {
+  position: relative;
+  display: grid;
+  place-items: center;
+  min-block-size: 340px;
+  isolation: isolate;
+}
+
+.characterAura {
+  position: absolute;
+  z-index: -1;
+  inline-size: min(94%, 310px);
+  aspect-ratio: 1;
+  border-radius: 50%;
+  background:
+    radial-gradient(circle, var(--color-accent-subtle) 0%, transparent 68%),
+    radial-gradient(circle at 72% 28%, rgba(201, 168, 111, 0.16), transparent 38%);
+}
+
+.characterMotion {
+  position: relative;
+  z-index: 1;
+  display: block;
+  inline-size: min(100%, 300px);
+  transform-origin: center bottom;
+}
+
+.characterMotion[dir='rtl'] {
+  animation-name: character-arrive-rtl;
+}
+
+.character {
+  display: block;
+  inline-size: 100%;
+  block-size: auto;
+  overflow: visible;
+}
+
+.characterMotion[dir='rtl'] .character {
+  transform: scaleX(-1);
+}
+
+.characterFocused .characterBag {
+  animation: none;
+  transform: translateY(-4px) rotate(-7deg);
+}
+
+.characterGround {
+  fill: var(--color-text-primary);
+  opacity: 0.08;
+}
+
+.characterLegBack,
+.characterLegFront,
+.characterBag {
+  transform-box: fill-box;
+  transform-origin: top center;
+}
+
+.characterBag {
+  transition: transform var(--duration-normal) var(--ease-out-quart);
+}
+
+.characterRestingArm,
+.characterPointingArm {
+  transform-box: fill-box;
+  transform-origin: 0% 15%;
+  transition:
+    opacity var(--duration-normal) var(--ease-out-quart),
+    transform var(--duration-normal) var(--ease-out-quart);
+}
+
+.characterPointingArm {
+  opacity: 0;
+  transform: translateY(7px);
+}
+
+.authSuccess .characterRestingArm {
+  opacity: 0;
+}
+
+.authSuccess .characterPointingArm {
+  opacity: 1;
+  transform: translateY(0);
+}
+
+.characterSparkle {
+  position: absolute;
+  inset-block-start: 13%;
+  inset-inline-end: 14%;
+  z-index: 1;
+  color: var(--color-accent-primary);
+  font-size: 1.6rem;
+  line-height: 1;
+  opacity: 0.8;
+}
+
+.successCard {
+  display: flex;
+  min-block-size: 320px;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-4);
+  padding: var(--space-6);
+  text-align: center;
+}
+
+.successIcon {
+  display: grid;
+  inline-size: 68px;
+  block-size: 68px;
+  place-items: center;
+  border: 1px solid var(--color-status-success-border);
+  border-radius: 50%;
+  background: var(--color-status-success-bg);
+  color: var(--color-status-success-text);
+}
+
+.successTitle {
+  font-size: var(--text-xl);
+}
+
+.successMessage {
+  color: var(--color-text-secondary);
+  font-size: var(--text-sm);
+}
+
 .authCard {
   width: 100%;
   max-inline-size: 480px;
@@ -274,6 +413,12 @@
   gap: var(--space-4);
 }
 
+.nameFields {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: var(--space-3);
+}
+
 .errorBanner {
   padding: var(--space-3);
   background-color: var(--color-status-danger-bg);
@@ -312,4 +457,188 @@
   display: flex;
   align-items: center;
   gap: 8px;
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .characterMotion {
+    animation: character-arrive 760ms var(--ease-out-quart) both;
+  }
+
+  .characterMotion[dir='rtl'] {
+    animation-name: character-arrive-rtl;
+  }
+
+  .characterWalk {
+    animation: character-bob 2.8s ease-in-out 760ms infinite;
+  }
+
+  .characterLegBack {
+    animation: character-step 360ms ease-in-out 2;
+  }
+
+  .characterLegFront {
+    animation: character-step 360ms ease-in-out 2 reverse;
+  }
+
+  .characterBag {
+    animation: character-bag-sway 2.8s ease-in-out 760ms infinite;
+  }
+
+  .authSuccess .characterPointingArm {
+    animation: character-point 380ms var(--ease-out-quart) both;
+  }
+
+  .characterSparkle {
+    animation: character-twinkle 2.4s ease-in-out 760ms infinite;
+  }
+
+  .successCard {
+    animation: success-card-arrive 380ms var(--ease-out-quart) both;
+  }
+}
+
+@keyframes character-arrive {
+  from {
+    opacity: 0;
+    transform: translateX(-28px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+@keyframes character-arrive-rtl {
+  from {
+    opacity: 0;
+    transform: translateX(28px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+@keyframes character-bob {
+  0%,
+  100% {
+    transform: translateY(0);
+  }
+  50% {
+    transform: translateY(-2px);
+  }
+}
+
+@keyframes character-step {
+  0%,
+  100% {
+    transform: rotate(0);
+  }
+  50% {
+    transform: rotate(-9deg);
+  }
+}
+
+@keyframes character-bag-sway {
+  0%,
+  100% {
+    transform: rotate(0);
+  }
+  50% {
+    transform: rotate(1.5deg);
+  }
+}
+
+@keyframes character-point {
+  from {
+    opacity: 0;
+    transform: translateY(7px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes character-twinkle {
+  0%,
+  100% {
+    opacity: 0.45;
+    transform: scale(0.92);
+  }
+  50% {
+    opacity: 0.9;
+    transform: scale(1);
+  }
+}
+
+@keyframes success-card-arrive {
+  from {
+    opacity: 0;
+    transform: translateY(6px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@media (max-width: 760px) {
+  .authMain {
+    grid-template-columns: minmax(0, 1fr);
+    gap: 0;
+    align-content: start;
+    padding-block: var(--space-6) var(--space-10);
+  }
+
+  .characterScene {
+    min-block-size: 170px;
+    margin-block-end: calc(-1 * var(--space-2));
+  }
+
+  .characterMotion {
+    inline-size: 160px;
+  }
+
+  .characterAura {
+    inline-size: min(70%, 185px);
+  }
+
+  .characterSparkle {
+    inset-block-start: 12%;
+    inset-inline-end: calc(50% - 75px);
+  }
+
+  .authCard {
+    max-inline-size: 480px;
+    margin-inline: auto;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .characterMotion,
+  .characterWalk,
+  .characterLegBack,
+  .characterLegFront,
+  .characterBag,
+  .characterPointingArm,
+  .characterSparkle,
+  .successCard {
+    animation: none !important;
+  }
+
+  .characterRestingArm,
+  .characterPointingArm {
+    transition: none;
+  }
+
+  .characterBag {
+    transition: none;
+  }
+}
+
+@media (max-width: 420px) {
+  .nameFields {
+    grid-template-columns: minmax(0, 1fr);
+  }
 }

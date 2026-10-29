@@ -3,7 +3,10 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { ChevronLeft, ChevronRight } from 'lucide-react';
 import { sanitizeMediaUrl, getCanonicalImageFingerprint } from '@/lib/magicContentParser';
-import { getProductHeroTransitionName } from '@/lib/productHeroTransition';
+import {
+  getProductHeroTransitionName,
+  resolveProductHeroTransitionKey,
+} from '@/lib/productHeroTransition';
 import styles from './ProductPage.module.css';
 
 interface GalleryImage {
@@ -579,7 +582,8 @@ export function ProductGallery({
 
   const showThumbnails = totalSlides > 1;
   const currentSlide = allSlides[clampedIndex];
-  const heroTransitionName = getProductHeroTransitionName(heroTransitionId);
+  const heroTransitionKey = resolveProductHeroTransitionKey(heroTransitionId);
+  const heroTransitionName = getProductHeroTransitionName(heroTransitionKey);
 
   return (
     <div

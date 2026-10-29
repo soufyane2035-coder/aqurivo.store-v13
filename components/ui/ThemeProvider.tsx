@@ -137,7 +137,9 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
   }, []);
 
   const toggleTheme = useCallback((origin?: ThemeToggleOrigin) => {
-    const next: ResolvedTheme = theme === 'light' ? 'dark' : 'light';
+    const currentTheme: ResolvedTheme =
+      document.documentElement.dataset.theme === 'dark' ? 'dark' : 'light';
+    const next: ResolvedTheme = currentTheme === 'light' ? 'dark' : 'light';
     const updateTheme = () => {
       setThemeState(next);
       applyThemeToDom(next);
@@ -174,7 +176,9 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
     };
 
     try {
-      const transition = view.startViewTransition(updateTheme);
+      const transition = view.startViewTransition(() => {
+        updateTheme();
+      });
       void transition.finished.then(
         clearTransitionOrigin,
         (error: unknown) => {
@@ -187,7 +191,7 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
       console.error('Theme transition could not start.', error);
       updateTheme();
     }
-  }, [theme]);
+  }, []);
 
   return (
     <ThemeContext.Provider value={{ theme, toggleTheme, setTheme }}>

@@ -19,6 +19,7 @@ import {
   signInWithEmailAndPassword,
   signOut,
   signInWithPopup,
+  updateProfile,
 } from 'firebase/auth';
 import {
   createGoogleProvider,
@@ -38,6 +39,7 @@ interface AuthFormViewProps {
 }
 
 const AUTH_OPERATION_TIMEOUT_MS = 20_000;
+const AUTH_SUCCESS_DISPLAY_MS = 1_200;
 
 function withAuthTimeout<T>(operation: Promise<T>): Promise<T> {
   let timeoutId: ReturnType<typeof setTimeout> | undefined;
@@ -80,6 +82,126 @@ function GoogleIcon() {
   );
 }
 
+function LoginBagCharacter({
+  isAr,
+  isSuccess,
+}: {
+  isAr: boolean;
+  isSuccess: boolean;
+}) {
+  return (
+    <div
+      className={styles.characterMotion}
+      dir={isAr ? 'rtl' : 'ltr'}
+      aria-hidden="true"
+    >
+      <svg
+        className={`${styles.character} ${isSuccess ? styles.characterSuccess : ''}`}
+        viewBox="0 0 300 340"
+        focusable="false"
+      >
+        <ellipse className={styles.characterGround} cx="151" cy="318" rx="102" ry="13" />
+        <g className={styles.characterWalk}>
+          <path
+            className={styles.characterLegBack}
+            d="M119 227 113 282l-17 27c-3 5 1 10 7 10h34c5 0 9-4 9-9l-5-52 10-31z"
+            fill="var(--color-text-primary)"
+          />
+          <path
+            className={styles.characterLegFront}
+            d="m151 229 9 55-5 23c-1 6 3 10 9 10h39c6 0 9-6 5-11l-23-27-1-55z"
+            fill="var(--color-text-primary)"
+          />
+          <path
+            d="M101 307c-10 2-17 7-17 12 0 4 5 6 13 6h39c7 0 12-4 12-10v-8z"
+            fill="var(--color-accent-primary)"
+          />
+          <path
+            d="M158 307h42c10 0 17 5 17 11 0 5-5 7-13 7h-40c-8 0-13-4-13-10z"
+            fill="var(--color-accent-primary)"
+          />
+          <path
+            d="M103 144c7-13 19-20 39-20h19c22 0 36 13 40 36l7 62c1 10-6 19-16 20l-72 7c-11 1-20-7-21-18l-3-54c-1-13 1-24 7-33z"
+            fill="var(--color-accent-primary)"
+          />
+          <path
+            d="m117 143 26 18 28-19-6-21h-37z"
+            fill="var(--color-bg-elevated)"
+            opacity=".94"
+          />
+          <path
+            d="M126 107h32v29c0 10-7 17-16 17s-16-7-16-17z"
+            fill="#d7a47f"
+          />
+          <circle cx="142" cy="79" r="39" fill="#e5b995" />
+          <path
+            d="M103 78c-3-31 13-51 39-51 23 0 40 17 39 44-8-4-14-12-17-20-12 13-31 19-57 18z"
+            fill="var(--color-text-primary)"
+          />
+          <path
+            d="M110 75c-7 22-4 43 7 54-17-3-26-18-25-38 0-11 7-22 18-26z"
+            fill="var(--color-text-primary)"
+          />
+          <circle cx="129" cy="84" r="2.7" fill="#141817" />
+          <circle cx="155" cy="84" r="2.7" fill="#141817" />
+          <path
+            d="M132 100c6 5 14 5 20 0"
+            fill="none"
+            stroke="#9c5e50"
+            strokeWidth="2.5"
+            strokeLinecap="round"
+          />
+          <path
+            className={styles.characterRestingArm}
+            d="M187 151c15 6 24 20 30 39l7 22c2 6-1 12-7 14s-12-1-14-7l-12-27-19-15z"
+            fill="#e5b995"
+          />
+          <path
+            className={styles.characterPointingArm}
+            d="M185 151c17 3 28-3 41-15l23-21c4-4 10-4 14 0s4 10 0 14l-25 26c-16 17-35 22-56 16z"
+            fill="#e5b995"
+          />
+          <path
+            d="M105 150c-15 5-24 16-28 33l-8 30c-2 7 2 13 8 14 6 2 12-2 14-8l13-27 17-14z"
+            fill="#e5b995"
+          />
+          <g className={styles.characterBag}>
+            <path
+              d="m190 190 17-15c12-10 26-9 36 1l14 14"
+              fill="none"
+              stroke="var(--color-accent-primary)"
+              strokeWidth="7"
+              strokeLinecap="round"
+            />
+            <path
+              d="M197 194h63l-5 66c-1 8-7 13-15 13h-38c-8 0-14-6-14-14z"
+              fill="var(--color-bg-elevated)"
+              stroke="var(--color-accent-border)"
+              strokeWidth="3"
+            />
+            <path
+              d="M213 195v-7c0-9 7-16 16-16s16 7 16 16v7"
+              fill="none"
+              stroke="var(--color-accent-primary)"
+              strokeWidth="5"
+              strokeLinecap="round"
+            />
+            <rect
+              x="222"
+              y="221"
+              width="14"
+              height="16"
+              rx="3"
+              fill="var(--color-accent-primary)"
+            />
+            <circle cx="229" cy="229" r="2" fill="var(--color-text-on-accent)" />
+          </g>
+        </g>
+      </svg>
+    </div>
+  );
+}
+
 export function AuthFormView({ mode }: AuthFormViewProps) {
   const { locale } = useI18n();
   const isAr = locale === 'ar';
@@ -87,6 +209,8 @@ export function AuthFormView({ mode }: AuthFormViewProps) {
   const router = useRouter();
 
   const [email, setEmail] = useState('');
+  const [firstName, setFirstName] = useState('');
+  const [lastName, setLastName] = useState('');
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
   const [rememberMe, setRememberMe] = useState(true);
@@ -98,7 +222,11 @@ export function AuthFormView({ mode }: AuthFormViewProps) {
   const [infoMessage, setInfoMessage] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isResettingPassword, setIsResettingPassword] = useState(false);
+  const [isAuthSuccess, setIsAuthSuccess] = useState(false);
+  const [isFormFocused, setIsFormFocused] = useState(false);
 
+  const firstNameId = useId();
+  const lastNameId = useId();
   const emailId = useId();
   const passwordId = useId();
   const confirmPasswordId = useId();
@@ -204,6 +332,10 @@ export function AuthFormView({ mode }: AuthFormViewProps) {
           : data.user?.role === 'admin'
             ? '/admin'
             : '/';
+      setIsAuthSuccess(true);
+      await new Promise<void>((resolve) => {
+        window.setTimeout(resolve, AUTH_SUCCESS_DISPLAY_MS);
+      });
       router.replace(destination);
     } catch {
       setSessionExchangeFailed(true);
@@ -277,6 +409,15 @@ export function AuthFormView({ mode }: AuthFormViewProps) {
     setAdminAccessDenied(false);
 
     if (mode === 'register') {
+      if (!firstName.trim() || !lastName.trim()) {
+        setErrorMessage(
+          isAr
+            ? 'يرجى إدخال الاسم الأول واسم العائلة.'
+            : 'Please enter your first and last name.'
+        );
+        return;
+      }
+
       if (password !== confirmPassword) {
         setErrorMessage(
           isAr
@@ -313,6 +454,24 @@ export function AuthFormView({ mode }: AuthFormViewProps) {
         mode === 'register'
           ? await withAuthTimeout(createUserWithEmailAndPassword(auth, email.trim(), password))
           : await withAuthTimeout(signInWithEmailAndPassword(auth, email.trim(), password));
+
+      if (mode === 'register') {
+        try {
+          await withAuthTimeout(
+            updateProfile(credential.user, {
+              displayName: `${firstName.trim()} ${lastName.trim()}`,
+            })
+          );
+        } catch (profileError) {
+          console.error('Unable to save the new account display name.', profileError);
+          setInfoMessage(
+            isAr
+              ? 'تم إنشاء الحساب، لكن تعذر حفظ الاسم في الملف الشخصي.'
+              : 'Your account was created, but its display name could not be saved.'
+          );
+        }
+      }
+
       const idToken = await withAuthTimeout(credential.user.getIdToken());
       await exchangeTokenForSession(idToken, credential.user.refreshToken);
     } catch (err) {
@@ -474,8 +633,46 @@ export function AuthFormView({ mode }: AuthFormViewProps) {
     <div className={styles.pageShell}>
       <SiteHeader />
 
-      <main id="main-content" className={`siteContainer ${styles.main}`}>
+      <main
+        id="main-content"
+        className={`siteContainer ${styles.main} ${styles.authMain} ${isAuthSuccess ? styles.authSuccess : ''}`}
+      >
+        <div className={`${styles.characterScene} ${isFormFocused ? styles.characterFocused : ''}`}>
+          <div className={styles.characterAura} />
+          <LoginBagCharacter isAr={isAr} isSuccess={isAuthSuccess} />
+          <span className={styles.characterSparkle} aria-hidden="true">
+            ✦
+          </span>
+        </div>
+
         <section className={styles.authCard}>
+          {isAuthSuccess ? (
+            <div className={styles.successCard} role="status" aria-live="polite" aria-atomic="true">
+              <span className={styles.successIcon}>
+                <CheckCircle2 size={30} aria-hidden="true" />
+              </span>
+              <h1 className={styles.successTitle}>
+                {mode === 'register'
+                  ? isAr
+                    ? 'تم إنشاء الحساب بنجاح'
+                    : 'Your account is ready'
+                  : isAr
+                    ? 'تم تسجيل الدخول بنجاح'
+                    : 'You’re signed in'}
+              </h1>
+              <p className={styles.successMessage}>
+                {infoMessage ||
+                  (mode === 'register'
+                    ? isAr
+                      ? 'تم تجهيز حسابك. ستجد مختاراتك المحفوظة هنا.'
+                      : 'Your account is ready. Your saved picks are waiting here.'
+                    : isAr
+                      ? 'مرحباً بعودتك. نجهّز مختاراتك الآن.'
+                      : 'Welcome back. Your curated picks are ready.')}
+              </p>
+            </div>
+          ) : (
+            <>
           <div className={styles.headerRow}>
             <SignatureMotif
               index="01"
@@ -527,7 +724,54 @@ export function AuthFormView({ mode }: AuthFormViewProps) {
             <span>{isAr ? 'أو عبر البريد الإلكتروني' : 'or with email'}</span>
           </div>
 
-          <form onSubmit={handleEmailSubmit} className={styles.form}>
+          <form
+            onSubmit={handleEmailSubmit}
+            className={styles.form}
+            onFocusCapture={() => setIsFormFocused(true)}
+            onBlurCapture={(event) => {
+              const nextTarget = event.relatedTarget;
+              if (!(nextTarget instanceof Node) || !event.currentTarget.contains(nextTarget)) {
+                setIsFormFocused(false);
+              }
+            }}
+          >
+            {mode === 'register' && (
+              <div className={styles.nameFields}>
+                <div className={styles.fieldGroup}>
+                  <label htmlFor={firstNameId} className={styles.fieldLabel}>
+                    {isAr ? 'الاسم الأول' : 'First name'}
+                  </label>
+                  <input
+                    id={firstNameId}
+                    type="text"
+                    value={firstName}
+                    onChange={(event) => setFirstName(event.target.value)}
+                    placeholder={isAr ? 'اسمك' : 'Your name'}
+                    required
+                    maxLength={60}
+                    autoComplete="given-name"
+                    className={`${styles.inputField} ${styles.inputFieldNoEndIcon}`}
+                  />
+                </div>
+                <div className={styles.fieldGroup}>
+                  <label htmlFor={lastNameId} className={styles.fieldLabel}>
+                    {isAr ? 'اسم العائلة' : 'Last name'}
+                  </label>
+                  <input
+                    id={lastNameId}
+                    type="text"
+                    value={lastName}
+                    onChange={(event) => setLastName(event.target.value)}
+                    placeholder={isAr ? 'اسم العائلة' : 'Family name'}
+                    required
+                    maxLength={60}
+                    autoComplete="family-name"
+                    className={`${styles.inputField} ${styles.inputFieldNoEndIcon}`}
+                  />
+                </div>
+              </div>
+            )}
+
             {/* Email Field */}
             <div className={styles.fieldGroup}>
               <label htmlFor={emailId} className={styles.fieldLabel}>
@@ -752,6 +996,8 @@ export function AuthFormView({ mode }: AuthFormViewProps) {
               </p>
             )}
           </div>
+            </>
+          )}
         </section>
       </main>
 
