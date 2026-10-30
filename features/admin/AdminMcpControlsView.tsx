@@ -21,6 +21,7 @@ export function AdminMcpControlsView({
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState('');
   const [savedNotice, setSavedNotice] = useState(false);
+  const [loadAttempt, setLoadAttempt] = useState(0);
 
   useEffect(() => {
     let active = true;
@@ -65,7 +66,7 @@ export function AdminMcpControlsView({
     return () => {
       active = false;
     };
-  }, [csrfToken, isAr]);
+  }, [csrfToken, isAr, loadAttempt]);
 
   const save = async (field: 'products' | 'editorial', checked: boolean) => {
     setSaving(true);
@@ -252,7 +253,20 @@ export function AdminMcpControlsView({
           {controls.updatedBy ? ` · ${controls.updatedBy}` : ''}
         </p>
       )}
-      {error && <p className={styles.error} role="alert">{error}</p>}
+      {error && (
+        <div className={styles.errorBlock} role="alert">
+          <p className={styles.error}>{error}</p>
+          {!loaded || saving ? null : (
+            <button
+              type="button"
+              className={styles.retryButton}
+              onClick={() => setLoadAttempt((attempt) => attempt + 1)}
+            >
+              {isAr ? 'إعادة المحاولة' : 'Retry'}
+            </button>
+          )}
+        </div>
+      )}
       {savedNotice && (
         <p className={styles.success} role="status">
           {isAr ? 'تم حفظ صلاحيات MCP.' : 'MCP permissions saved.'}

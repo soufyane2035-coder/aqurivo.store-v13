@@ -27,6 +27,7 @@ function createHandlers(
   options: {
     authorized?: boolean;
     csrfValid?: boolean;
+    getStateFails?: boolean;
     env?: Record<string, string>;
   } = {}
 ) {
@@ -67,6 +68,7 @@ function createHandlers(
       return options.csrfValid !== false;
     },
     async getState() {
+      if (options.getStateFails) throw new Error('Database adapter unavailable.');
       return state();
     },
     async save(controls, actor) {
@@ -105,6 +107,27 @@ test('MCP controls API rejects invalid CSRF requests without persisting changes'
   );
   assert.equal(response.status, 403);
   assert.equal(fixture.getSaveCalls(), 0);
+});
+
+test('MCP controls API logs load failures without exposing internal database errors', async () => {
+  const fixture = createHandlers({ getStateFails: true });
+  const originalError = console.error;
+  const logged: unknown[][] = [];
+  console.error = (...args: unknown[]) => logged.push(args);
+  try {
+    const response = await fixture.handlers.GET();
+    assert.equal(response.status, 503);
+    assert.deepEqual(await response.json(), {
+      error: 'Unable to load MCP write controls.',
+    });
+  } finally {
+    console.error = originalError;
+  }
+  assert.equal(logged.length, 1);
+  assert.deepEqual(logged[0], [
+    '[admin/mcp-controls] Failed to load MCP write controls.',
+    { name: 'Error', message: 'Database adapter unavailable.' },
+  ]);
 });
 
 test('MCP controls API enforces independent environment caps and records the admin actor', async () => {

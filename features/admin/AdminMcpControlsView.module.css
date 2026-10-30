@@ -185,6 +185,29 @@
   font-size: var(--text-sm);
 }
 
+.errorBlock {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-3);
+}
+
+.retryButton {
+  min-height: 40px;
+  padding: 0 var(--space-4);
+  border: 1px solid var(--color-border-subtle, #d0d5dd);
+  border-radius: var(--radius-md, 8px);
+  background: var(--color-surface, #fff);
+  color: var(--color-text-primary, #111827);
+  font: inherit;
+  cursor: pointer;
+}
+
+.retryButton:focus-visible {
+  outline: 2px solid var(--color-focus-ring, #2563eb);
+  outline-offset: 2px;
+}
+
 .success {
   color: var(--color-status-success-text, #16803c);
   font-size: var(--text-sm);

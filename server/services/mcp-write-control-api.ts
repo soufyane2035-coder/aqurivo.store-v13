@@ -41,7 +41,11 @@ export function createMcpWriteControlApiHandlers(
           { controls: await dependencies.getState() },
           { headers: { 'Cache-Control': 'no-store, max-age=0' } }
         );
-      } catch {
+      } catch (error) {
+        console.error(
+          '[admin/mcp-controls] Failed to load MCP write controls.',
+          error instanceof Error ? { name: error.name, message: error.message } : error
+        );
         return NextResponse.json(
           { error: 'Unable to load MCP write controls.' },
           { status: 503, headers: { 'Cache-Control': 'no-store, max-age=0' } }
@@ -99,7 +103,11 @@ export function createMcpWriteControlApiHandlers(
           { controls: await dependencies.getState() },
           { headers: { 'Cache-Control': 'no-store, max-age=0' } }
         );
-      } catch {
+      } catch (error) {
+        console.error(
+          '[admin/mcp-controls] Failed to save MCP write controls.',
+          error instanceof Error ? { name: error.name, message: error.message } : error
+        );
         return NextResponse.json(
           { error: 'Unable to save MCP write controls.' },
           { status: 503 }
