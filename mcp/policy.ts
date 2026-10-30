@@ -5,6 +5,7 @@ export interface McpPolicy {
   databaseReady: boolean;
   canRead: boolean;
   canWrite: boolean;
+  canWriteProducts: boolean;
   canDelete: boolean;
 }
 
@@ -63,9 +64,15 @@ export function getMcpPolicy(
     canRead &&
     env.AQURIVO_MCP_ENABLE_WRITES === 'true' &&
     (target === 'local' || env.AQURIVO_MCP_ALLOW_PRODUCTION_WRITES === 'true');
+  const canWriteProducts =
+    canWrite ||
+    (canRead &&
+      env.AQURIVO_MCP_ENABLE_WRITES === 'true' &&
+      target === 'production' &&
+      env.AQURIVO_MCP_ALLOW_PRODUCTION_PRODUCT_WRITES === 'true');
   const canDelete = canWrite && env.AQURIVO_MCP_ALLOW_DELETES === 'true';
 
-  return { target, databaseReady, canRead, canWrite, canDelete };
+  return { target, databaseReady, canRead, canWrite, canWriteProducts, canDelete };
 }
 
 export function requireReadAccess(policy: McpPolicy): void {
@@ -99,6 +106,21 @@ export function requireWriteAccess(
   if (destructive && !policy.canDelete) {
     throw new Error(
       'Deletion is disabled. Set AQURIVO_MCP_ALLOW_DELETES=true and confirm the exact item before deleting.'
+    );
+  }
+}
+
+export function requireProductWriteAccess(
+  policy: McpPolicy,
+  confirmed: boolean
+): void {
+  requireReadAccess(policy);
+  if (!confirmed) {
+    throw new Error('No change was made. Set confirm=true only after reviewing the requested change.');
+  }
+  if (!policy.canWriteProducts) {
+    throw new Error(
+      'Product writes are disabled. Set AQURIVO_MCP_ENABLE_WRITES=true; production also requires AQURIVO_MCP_ALLOW_PRODUCTION_PRODUCT_WRITES=true.'
     );
   }
 }

@@ -60,26 +60,15 @@ schemas.
 1. Install the project dependencies with `npm install`.
 2. The workspace MCP configuration is [.vscode/mcp.json](../.vscode/mcp.json).
    Reload VS Code or run **MCP: List Servers**, then start `aqurivo`.
-3. Keep the configured target at `local` for development. Local reads/writes
-   are enabled only when both `DATA_STORE` and `NEXT_PUBLIC_DATA_STORE` are
-   `turso`, `TURSO_DATABASE_URL` is a local `file:` URL, and
-   `TURSO_AUTH_TOKEN` is set. Use a separate local database and a placeholder
-   local token; do not point this local target at a hosted Turso URL or Firebase.
-   The ignored `.aqurivo-mcp/` directory can hold the local database file.
-   Create it with `New-Item -ItemType Directory -Force .aqurivo-mcp`, then set
-   these values in your untracked `.env.local` (use an absolute file URL for
-   your own workspace):
-
-   ```dotenv
-   DATA_STORE=turso
-   NEXT_PUBLIC_DATA_STORE=turso
-   TURSO_DATABASE_URL=file:///C:/path/to/your/workspace/.aqurivo-mcp/local.db
-   TURSO_AUTH_TOKEN=local-development-only
-   AQURIVO_MCP_ENABLE_WRITES=true
-   ```
-
-   Do not copy production credentials or enable production access for this
-   local setup.
+3. Configure the workspace MCP target to match the intended database. The
+   current workspace configuration targets the app's hosted Turso database
+   loaded from `.env.local`; it enables product writes only. Keep credentials
+   out of `.vscode/mcp.json`. For local development, set the target to `local`,
+   use `DATA_STORE=turso`, `NEXT_PUBLIC_DATA_STORE=turso`, a file-backed
+   `TURSO_DATABASE_URL`, and a placeholder `TURSO_AUTH_TOKEN`. The ignored
+   `.aqurivo-mcp/` directory can hold that database; create it with
+   `New-Item -ItemType Directory -Force .aqurivo-mcp`. Never point local mode at
+   hosted credentials. Every write still requires `confirm: true`.
 4. To launch the same stdio server manually, run `npm run mcp`. Its JSON-RPC
    protocol uses stdout; diagnostics are not printed to stdout.
 5. To test the project, run `npm test`. The MCP tests use an in-memory
@@ -105,14 +94,16 @@ service. Do not run it in a shared account/workspace or expose its stdio
 credentials to another process.
 
 - Database access is disabled until `AQURIVO_MCP_TARGET` is explicitly set.
-- The VS Code config sets `AQURIVO_MCP_TARGET=local`. Local mode rejects
-  non-file database URLs.
+- Local mode rejects non-file database URLs. The workspace config selects the
+  intended target explicitly.
 - Each write tool requires `confirm: true` and
   `AQURIVO_MCP_ENABLE_WRITES=true`.
 - Production reads additionally require
   `AQURIVO_MCP_ALLOW_PRODUCTION_READS=true`.
-- Production writes additionally require
-  `AQURIVO_MCP_ALLOW_PRODUCTION_WRITES=true`.
+- General production writes additionally require
+  `AQURIVO_MCP_ALLOW_PRODUCTION_WRITES=true`. Product saves can instead be
+  enabled separately with `AQURIVO_MCP_ALLOW_PRODUCTION_PRODUCT_WRITES=true`;
+  this does not enable category, editorial, settings, restore, or delete writes.
 - Deletions require all applicable write gates plus
   `AQURIVO_MCP_ALLOW_DELETES=true` and `confirm: true` on that call.
 - The log records prepared, completed, and failed mutation phases. A prepared

@@ -10,6 +10,7 @@ import {
   type AuditedEntity,
 } from './audit';
 import {
+  requireProductWriteAccess,
   requireReadAccess,
   requireWriteAccess,
   type McpPolicy,
@@ -428,7 +429,7 @@ export function registerAqurivoTools(
     },
     async ({ product, existingId, confirm }) => {
       try {
-        requireWriteAccess(policy(), confirm);
+        requireProductWriteAccess(policy(), confirm);
         const categories = await dependencies.categories.list();
         if (!categories.some((category) => category.id === product.categoryId || category.slug === product.categoryId)) {
           throw new Error('The category does not exist. Create it with aqurivo_save_category first.');

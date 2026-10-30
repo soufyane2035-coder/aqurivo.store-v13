@@ -18,7 +18,7 @@ import {
   type AuditEntry,
   type AuditStore,
 } from '../mcp/audit';
-import { getMcpPolicy } from '../mcp/policy';
+import { getMcpPolicy, type McpPolicy } from '../mcp/policy';
 import {
   registerAqurivoTools,
   type McpDomainDependencies,
@@ -31,6 +31,7 @@ const enabledLocalPolicy = {
   databaseReady: true,
   canRead: true,
   canWrite: true,
+  canWriteProducts: true,
   canDelete: true,
 };
 
@@ -150,7 +151,7 @@ function createMemoryAuditStore(): AuditStore {
 
 async function connectServer(
   dependencies: McpDomainDependencies,
-  policy: () => typeof enabledLocalPolicy,
+  policy: () => McpPolicy,
   audit: AuditStore = createMemoryAuditStore(),
   fetcher?: typeof fetch
 ) {
@@ -400,6 +401,54 @@ test('write calls are rejected when the effective policy is read-only', async ()
   }
 });
 
+test('production product-write scope does not enable other write tools', async () => {
+  const { dependencies, state } = createFakeDependencies();
+  const productWritePolicy = () => ({
+    ...enabledLocalPolicy,
+    target: 'production' as const,
+    canWrite: false,
+    canWriteProducts: true,
+    canDelete: false,
+  });
+  const { client, server } = await connectServer(dependencies, productWritePolicy);
+
+  try {
+    const category = await client.callTool({
+      name: 'aqurivo_save_category',
+      arguments: {
+        category: {
+          slug: 'production-test-category',
+          name: { en: 'Production test category', ar: 'تصنيف اختبار الإنتاج' },
+        },
+        confirm: true,
+      },
+    });
+    assert.equal(category.isError, true);
+    assert.equal(state.categories.has('production-test-category'), false);
+
+    const product = await client.callTool({
+      name: 'aqurivo_save_product',
+      arguments: {
+        product: {
+          slug: 'production-test-product',
+          title: { en: 'Production test product', ar: 'منتج اختبار الإنتاج' },
+          priceAmount: 25,
+          affiliateUrl: 'https://shop.example/item',
+          sourceId: 'amazon',
+          categoryId: 'home',
+          status: 'draft',
+        },
+        confirm: true,
+      },
+    });
+    assert.equal(readToolText(product).verified, true);
+    assert.equal(state.products.has('production-test-product-amazon'), true);
+  } finally {
+    await client.close();
+    await server.close();
+  }
+});
+
 test('category, buying-guide and site-settings changes are verified and audited', async () => {
   const { dependencies, state } = createFakeDependencies();
   const { client, server } = await connectServer(dependencies, () => enabledLocalPolicy);
@@ -535,6 +584,22 @@ test('local policy rejects hosted database URLs and production requires explicit
   });
   assert.equal(production.canRead, true);
   assert.equal(production.canWrite, false);
+  assert.equal(production.canWriteProducts, false);
+
+  const productWritesOnly = getMcpPolicy({
+    AQURIVO_MCP_TARGET: 'production',
+    DATA_STORE: 'turso',
+    NEXT_PUBLIC_DATA_STORE: 'turso',
+    TURSO_DATABASE_URL: 'libsql://production.example',
+    TURSO_AUTH_TOKEN: 'not-used-by-this-policy-test',
+    AQURIVO_MCP_ALLOW_PRODUCTION_READS: 'true',
+    AQURIVO_MCP_ENABLE_WRITES: 'true',
+    AQURIVO_MCP_ALLOW_PRODUCTION_PRODUCT_WRITES: 'true',
+  });
+  assert.equal(productWritesOnly.canRead, true);
+  assert.equal(productWritesOnly.canWrite, false);
+  assert.equal(productWritesOnly.canWriteProducts, true);
+  assert.equal(productWritesOnly.canDelete, false);
 });
 
 test('site audit samples only same-origin sitemap pages and reports missing SEO metadata', async () => {
