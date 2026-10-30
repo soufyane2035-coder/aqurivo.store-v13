@@ -6,7 +6,18 @@ export interface McpPolicy {
   canRead: boolean;
   canWrite: boolean;
   canWriteProducts: boolean;
+  canWriteEditorial: boolean;
   canDelete: boolean;
+}
+
+export interface McpWriteControls {
+  products: boolean;
+  editorial: boolean;
+}
+
+export interface McpWriteLimits {
+  products: boolean;
+  editorial: boolean;
 }
 
 function isLocalDatabaseUrl(value: string): boolean {
@@ -70,9 +81,91 @@ export function getMcpPolicy(
       env.AQURIVO_MCP_ENABLE_WRITES === 'true' &&
       target === 'production' &&
       env.AQURIVO_MCP_ALLOW_PRODUCTION_PRODUCT_WRITES === 'true');
+  const canWriteEditorial =
+    canWrite ||
+    (canRead &&
+      env.AQURIVO_MCP_ENABLE_WRITES === 'true' &&
+      target === 'production' &&
+      env.AQURIVO_MCP_ALLOW_PRODUCTION_EDITORIAL_WRITES === 'true');
   const canDelete = canWrite && env.AQURIVO_MCP_ALLOW_DELETES === 'true';
 
-  return { target, databaseReady, canRead, canWrite, canWriteProducts, canDelete };
+  return {
+    target,
+    databaseReady,
+    canRead,
+    canWrite,
+    canWriteProducts,
+    canWriteEditorial,
+    canDelete,
+  };
+}
+
+/**
+ * Applies the persisted admin controls without allowing them to exceed the
+ * environment's write gates. With no saved controls, retain the legacy
+ * environment-derived scopes for existing installations.
+ */
+export function applyMcpWriteControls(
+  policy: McpPolicy,
+  controls: Partial<McpWriteControls> | null,
+  env: Readonly<Record<string, string | undefined>> = process.env
+): McpPolicy {
+  if (!controls) return policy;
+
+  const writesEnabled =
+    policy.canRead && env.AQURIVO_MCP_ENABLE_WRITES === 'true';
+  const productionProductGate =
+    policy.target !== 'production' ||
+    env.AQURIVO_MCP_ALLOW_PRODUCTION_PRODUCT_WRITES === 'true';
+  const productionEditorialGate =
+    policy.target !== 'production' ||
+    env.AQURIVO_MCP_ALLOW_PRODUCTION_EDITORIAL_WRITES === 'true';
+
+  return {
+    ...policy,
+    canWriteProducts:
+      controls.products === undefined
+        ? policy.canWriteProducts
+        : writesEnabled && productionProductGate && controls.products,
+    canWriteEditorial:
+      controls.editorial === undefined
+        ? policy.canWriteEditorial
+        : writesEnabled && productionEditorialGate && controls.editorial,
+  };
+}
+
+export function getMcpWriteLimits(
+  policy: McpPolicy,
+  env: Readonly<Record<string, string | undefined>> = process.env
+): McpWriteLimits {
+  // The dashboard may run in a different process than the local stdio server,
+  // so absent environment values cannot always describe the MCP host's final
+  // gates. An explicit false is still a hard upper bound for dashboard grants.
+  // In that case it can store the requested scopes; MCP still enforces the
+  // actual process environment on every tool call.
+  if (policy.target === 'unconfigured') {
+    const masterEnabled = env.AQURIVO_MCP_ENABLE_WRITES !== 'false';
+    return {
+      products:
+        masterEnabled &&
+        env.AQURIVO_MCP_ALLOW_PRODUCTION_PRODUCT_WRITES !== 'false',
+      editorial:
+        masterEnabled &&
+        env.AQURIVO_MCP_ALLOW_PRODUCTION_EDITORIAL_WRITES !== 'false',
+    };
+  }
+
+  const enabled = policy.canRead && env.AQURIVO_MCP_ENABLE_WRITES === 'true';
+  return {
+    products:
+      enabled &&
+      (policy.target !== 'production' ||
+        env.AQURIVO_MCP_ALLOW_PRODUCTION_PRODUCT_WRITES === 'true'),
+    editorial:
+      enabled &&
+      (policy.target !== 'production' ||
+        env.AQURIVO_MCP_ALLOW_PRODUCTION_EDITORIAL_WRITES === 'true'),
+  };
 }
 
 export function requireReadAccess(policy: McpPolicy): void {
@@ -121,6 +214,21 @@ export function requireProductWriteAccess(
   if (!policy.canWriteProducts) {
     throw new Error(
       'Product writes are disabled. Set AQURIVO_MCP_ENABLE_WRITES=true; production also requires AQURIVO_MCP_ALLOW_PRODUCTION_PRODUCT_WRITES=true.'
+    );
+  }
+}
+
+export function requireEditorialWriteAccess(
+  policy: McpPolicy,
+  confirmed: boolean
+): void {
+  requireReadAccess(policy);
+  if (!confirmed) {
+    throw new Error('No change was made. Set confirm=true only after reviewing the requested change.');
+  }
+  if (!policy.canWriteEditorial) {
+    throw new Error(
+      'Editorial writes are disabled. Set AQURIVO_MCP_ENABLE_WRITES=true; production also requires AQURIVO_MCP_ALLOW_PRODUCTION_EDITORIAL_WRITES=true.'
     );
   }
 }

@@ -4,7 +4,7 @@ import { StdioServerTransport } from '@modelcontextprotocol/sdk/server/stdio.js'
 import { homedir } from 'node:os';
 import { join } from 'node:path';
 import { createFileAuditStore } from './audit';
-import { getMcpPolicy } from './policy';
+import { applyMcpWriteControls, getMcpPolicy } from './policy';
 import { registerAqurivoTools } from './tools';
 
 loadEnvConfig(process.cwd());
@@ -16,6 +16,7 @@ async function startServer(): Promise<void> {
     productsRepo,
     sourcesRepo,
     settingsRepo,
+    mcpControlsRepo,
     firebaseAdmin,
   ] = await Promise.all([
     import('@/server/repositories/articles.repo'),
@@ -23,6 +24,7 @@ async function startServer(): Promise<void> {
     import('@/server/repositories/products.repo'),
     import('@/server/repositories/sources.repo'),
     import('@/server/repositories/settings.repo'),
+    import('@/server/repositories/mcp-controls.repo'),
     import('@/server/config/firebase-admin'),
   ]);
   const server = new McpServer({ name: 'aqurivo-mcp', version: '0.1.0' });
@@ -103,7 +105,18 @@ async function startServer(): Promise<void> {
       },
     },
     {
-      policy: getMcpPolicy,
+      async policy() {
+        const basePolicy = getMcpPolicy();
+        if (!basePolicy.databaseReady || !basePolicy.canRead) return basePolicy;
+        try {
+          const controls = await mcpControlsRepo.getMcpWriteControls();
+          return applyMcpWriteControls(basePolicy, controls);
+        } catch {
+          throw new Error(
+            'Unable to load persisted MCP write controls. Product and editorial tools are unavailable until the control settings can be read.'
+          );
+        }
+      },
       audit: createFileAuditStore(auditPath),
       auditBaseUrl,
     }

@@ -19,6 +19,7 @@ import {
   Moon,
   Package,
   Settings,
+  SlidersHorizontal,
   Store,
   Sun,
   Users,
@@ -219,6 +220,11 @@ export function AdminShell({
       href: '/admin/settings',
       label: isAr ? 'الإعدادات' : 'Settings',
       icon: Settings,
+    },
+    {
+      href: '/admin/mcp',
+      label: isAr ? 'صلاحيات MCP' : 'MCP Permissions',
+      icon: SlidersHorizontal,
     },
   ];
 

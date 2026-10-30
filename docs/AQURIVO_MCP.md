@@ -62,7 +62,9 @@ schemas.
    Reload VS Code or run **MCP: List Servers**, then start `aqurivo`.
 3. Configure the workspace MCP target to match the intended database. The
    current workspace configuration targets the app's hosted Turso database
-   loaded from `.env.local`; it enables product writes only. Keep credentials
+   loaded from `.env.local`; its environment gates permit product and editorial
+   writes. The admin dashboard can independently narrow or enable each write
+   scope within those environment limits. Keep credentials
    out of `.vscode/mcp.json`. For local development, set the target to `local`,
    use `DATA_STORE=turso`, `NEXT_PUBLIC_DATA_STORE=turso`, a file-backed
    `TURSO_DATABASE_URL`, and a placeholder `TURSO_AUTH_TOKEN`. The ignored
@@ -101,9 +103,15 @@ credentials to another process.
 - Production reads additionally require
   `AQURIVO_MCP_ALLOW_PRODUCTION_READS=true`.
 - General production writes additionally require
-  `AQURIVO_MCP_ALLOW_PRODUCTION_WRITES=true`. Product saves can instead be
-  enabled separately with `AQURIVO_MCP_ALLOW_PRODUCTION_PRODUCT_WRITES=true`;
-  this does not enable category, editorial, settings, restore, or delete writes.
+  `AQURIVO_MCP_ALLOW_PRODUCTION_WRITES=true`. Product saves and editorial
+  saves can instead be enabled separately with
+  `AQURIVO_MCP_ALLOW_PRODUCTION_PRODUCT_WRITES=true` and
+  `AQURIVO_MCP_ALLOW_PRODUCTION_EDITORIAL_WRITES=true`, respectively. These
+  scoped gates do not enable category, settings, restore, or delete writes.
+- Editorial write access applies to creating, updating, drafting, and
+  publishing articles and buying guides. They share the `articles` collection;
+  deletion and audit restoration remain disabled unless their separate gates
+  are enabled.
 - Deletions require all applicable write gates plus
   `AQURIVO_MCP_ALLOW_DELETES=true` and `confirm: true` on that call.
 - The log records prepared, completed, and failed mutation phases. A prepared
@@ -120,6 +128,35 @@ The app's admin APIs still require their existing authenticated admin session
 and CSRF checks. This MCP process is separate: it runs only as a local VS Code
 child process and uses the configured server-side database credentials. Do not
 expose it as a remote service or share those credentials.
+
+## Dashboard write controls
+
+The authenticated admin dashboard has a **MCP Permissions** section at
+`/admin/mcp`. Its two independent switches control product writes and buying
+guide/editorial writes only. The settings are stored in the private
+`admin_secrets/mcp_write_controls` document, not in the publicly readable site
+settings document. Dashboard reads and updates use the existing admin-session
+authorization; updates additionally require CSRF verification. Each change
+saves the actor email and update time.
+
+The local VS Code stdio MCP process reads this private document from the same
+configured database for each tool call; changes take effect without restarting
+VS Code. If no admin control document exists, MCP retains its existing
+environment-derived write scopes for compatibility. If the control document
+cannot be read or is malformed, MCP fails closed for tool calls until it can
+read valid settings. Each scope remains on its environment-derived default
+until that specific scope is explicitly set, so changing one toggle does not
+silently change the other. The web app and local stdio process can have separate
+environment variables; if the web app has no MCP target configured, the page
+shows the saved preference and the MCP process remains authoritative for its
+effective scopes. A dashboard switch cannot override
+`AQURIVO_MCP_ENABLE_WRITES` or the respective production upper-bound flag
+(`AQURIVO_MCP_ALLOW_PRODUCTION_PRODUCT_WRITES` or
+`AQURIVO_MCP_ALLOW_PRODUCTION_EDITORIAL_WRITES`); the dashboard rejects an
+attempt to enable a scope blocked by those gates. These controls do not govern
+deletions, categories, site settings, restore operations, or process start/stop.
+Deletion remains outside this dashboard and requires its separate explicit
+environment gate.
 
 ## Extending the server
 

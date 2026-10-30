@@ -689,7 +689,8 @@ async function fetchFirestorePublicFilteredCollection(
 
 async function fetchSingleDocFromFirestoreCloud(
   collectionName: string,
-  docId: string
+  docId: string,
+  fresh = false
 ): Promise<Record<string, unknown> | null> {
   const token = await getValidServerFirebaseIdToken();
   const env = loadServerEnv();
@@ -701,12 +702,15 @@ async function fetchSingleDocFromFirestoreCloud(
     ? [{ Authorization: `Bearer ${token}` }, {}]
     : [{}];
 
+  let freshReadFailed = false;
   for (const hdrs of headerAttempts) {
     try {
       const res = await fetchWithTimeout(firestoreUrl, {
         method: 'GET',
         headers: hdrs,
-        next: { revalidate: 86400, tags: [`${collectionName}_${docId}`, collectionName] },
+        ...(fresh
+          ? { cache: 'no-store' as const }
+          : { next: { revalidate: 86400, tags: [`${collectionName}_${docId}`, collectionName] } }),
       });
       if (res.ok) {
         const rawDoc = (await res.json()) as {
@@ -717,11 +721,21 @@ async function fetchSingleDocFromFirestoreCloud(
         if (parsed && parsed.id) {
           return parsed.data;
         }
+        if (fresh) freshReadFailed = true;
       }
+      if (fresh && res.status === 404) return null;
+      if (fresh && !res.ok) freshReadFailed = true;
     } catch {
+      if (fresh) freshReadFailed = true;
       // Try next header
     }
   }
+  if (fresh && freshReadFailed) {
+    // A live control-plane read must not silently fall back to stale local
+    // state if Firestore cannot be reached.
+    throw new Error(`Unable to read fresh Firestore document ${collectionName}/${docId}.`);
+  }
+  if (fresh) return null;
   return null;
 }
 
@@ -1149,6 +1163,39 @@ export function getAdminDb(): CloudFirestoreAdapter {
     return tursoFirestoreAdapter;
   }
   return soufshopCloudAdapter;
+}
+
+/**
+ * Reads a single control-plane document from the backing database without
+ * serving the Firebase adapter's local mirror or Next's fetch cache.
+ */
+export async function getAdminDocumentFresh(
+  collectionName: string,
+  documentId: string
+): Promise<CloudDocSnapshot> {
+  const db = getAdminDb();
+  if (process.env.DATA_STORE === 'turso') {
+    return db.collection(collectionName).doc(documentId).get();
+  }
+
+  const data = await fetchSingleDocFromFirestoreCloud(
+    collectionName,
+    documentId,
+    true
+  );
+  const store = readLocalMirror();
+  if (data) {
+    if (!store[collectionName]) store[collectionName] = {};
+    store[collectionName][documentId] = data;
+  } else if (store[collectionName]) {
+    delete store[collectionName][documentId];
+  }
+  writeLocalMirror(store);
+  return {
+    id: documentId,
+    exists: Boolean(data),
+    data: () => (data ? { ...data } : undefined),
+  };
 }
 
 const cloudAuthAdapter: CloudAuthAdapter = {

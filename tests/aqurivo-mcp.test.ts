@@ -18,7 +18,13 @@ import {
   type AuditEntry,
   type AuditStore,
 } from '../mcp/audit';
-import { getMcpPolicy, type McpPolicy } from '../mcp/policy';
+import {
+  applyMcpWriteControls,
+  getMcpPolicy,
+  getMcpWriteLimits,
+  type McpPolicy,
+  type McpWriteControls,
+} from '../mcp/policy';
 import {
   registerAqurivoTools,
   type McpDomainDependencies,
@@ -32,6 +38,7 @@ const enabledLocalPolicy = {
   canRead: true,
   canWrite: true,
   canWriteProducts: true,
+  canWriteEditorial: true,
   canDelete: true,
 };
 
@@ -151,7 +158,7 @@ function createMemoryAuditStore(): AuditStore {
 
 async function connectServer(
   dependencies: McpDomainDependencies,
-  policy: () => McpPolicy,
+  policy: () => McpPolicy | Promise<McpPolicy>,
   audit: AuditStore = createMemoryAuditStore(),
   fetcher?: typeof fetch
 ) {
@@ -235,6 +242,76 @@ test('MCP tool discovery, product read/write verification and snapshot rollback 
     });
     assert.equal(readToolText(restored).verified, true);
     assert.equal(state.products.has('test-mcp-product-amazon'), false);
+  } finally {
+    await client.close();
+    await server.close();
+  }
+});
+
+test('production editorial-write scope enables guide saves only', async () => {
+  const { dependencies, state } = createFakeDependencies();
+  const editorialWritePolicy = () => ({
+    ...enabledLocalPolicy,
+    target: 'production' as const,
+    canWrite: false,
+    canWriteProducts: false,
+    canWriteEditorial: true,
+    canDelete: false,
+  });
+  const { client, server } = await connectServer(dependencies, editorialWritePolicy);
+
+  try {
+    const guide = await client.callTool({
+      name: 'aqurivo_save_editorial_content',
+      arguments: {
+        content: {
+          slug: 'production-test-guide',
+          title: { en: 'Production test guide', ar: 'دليل اختبار الإنتاج' },
+          contentHtml: { en: '<p>Guide</p>', ar: '<p>دليل</p>' },
+          status: 'draft',
+        },
+        confirm: true,
+      },
+    });
+    assert.equal(readToolText(guide).verified, true);
+    assert.equal(state.content.get('production-test-guide')?.status, 'draft');
+
+    const product = await client.callTool({
+      name: 'aqurivo_save_product',
+      arguments: {
+        product: {
+          slug: 'production-editorial-test-product',
+          title: { en: 'Test product', ar: 'منتج اختبار' },
+          priceAmount: 19.99,
+          affiliateUrl: 'https://shop.example/test',
+          sourceId: 'amazon',
+          categoryId: 'home',
+        },
+        confirm: true,
+      },
+    });
+    assert.equal(product.isError, true);
+    assert.equal(state.products.size, 0);
+
+    const category = await client.callTool({
+      name: 'aqurivo_save_category',
+      arguments: {
+        category: {
+          slug: 'production-editorial-test-category',
+          name: { en: 'Test category', ar: 'تصنيف الاختبار' },
+        },
+        confirm: true,
+      },
+    });
+    assert.equal(category.isError, true);
+    assert.equal(state.categories.has('production-editorial-test-category'), false);
+
+    const deletion = await client.callTool({
+      name: 'aqurivo_delete_editorial_content',
+      arguments: { contentId: 'production-test-guide', confirm: true },
+    });
+    assert.equal(deletion.isError, true);
+    assert.equal(state.content.has('production-test-guide'), true);
   } finally {
     await client.close();
     await server.close();
@@ -401,6 +478,112 @@ test('write calls are rejected when the effective policy is read-only', async ()
   }
 });
 
+test('MCP tool calls observe independent persisted write scopes dynamically', async () => {
+  const { dependencies, state } = createFakeDependencies();
+  const env = {
+    AQURIVO_MCP_TARGET: 'local',
+    DATA_STORE: 'turso',
+    NEXT_PUBLIC_DATA_STORE: 'turso',
+    TURSO_DATABASE_URL: 'file:///C:/tmp/aqurivo-mcp-test.db',
+    TURSO_AUTH_TOKEN: 'local-only',
+    AQURIVO_MCP_ENABLE_WRITES: 'true',
+  };
+  const basePolicy = getMcpPolicy(env);
+  let savedControls: McpWriteControls | null = { products: false, editorial: false };
+  const { client, server } = await connectServer(
+    dependencies,
+    async () => applyMcpWriteControls(basePolicy, savedControls, env)
+  );
+
+  const productArgs = {
+    product: {
+      slug: 'scope-product',
+      title: { en: 'Scope product', ar: 'منتج النطاق' },
+      priceAmount: 25,
+      affiliateUrl: 'https://shop.example/item',
+      sourceId: 'amazon',
+      categoryId: 'home',
+      status: 'draft',
+    },
+    confirm: true,
+  };
+  const guideArgs = {
+    content: {
+      slug: 'scope-guide',
+      title: { en: 'Scope guide', ar: 'دليل النطاق' },
+      contentHtml: { en: '<p>Guide content</p>', ar: '<p>محتوى الدليل</p>' },
+      categoryId: 'home',
+      status: 'draft',
+    },
+    confirm: true,
+  };
+
+  try {
+    const disabledProduct = await client.callTool({
+      name: 'aqurivo_save_product',
+      arguments: productArgs,
+    });
+    assert.equal(disabledProduct.isError, true);
+    assert.equal(state.products.size, 0);
+
+    savedControls = { products: true, editorial: false };
+    const enabledProduct = await client.callTool({
+      name: 'aqurivo_save_product',
+      arguments: productArgs,
+    });
+    assert.equal(readToolText(enabledProduct).verified, true);
+    assert.equal(state.products.size, 1);
+
+    const updatedProduct = await client.callTool({
+      name: 'aqurivo_save_product',
+      arguments: {
+        ...productArgs,
+        existingId: 'scope-product-amazon',
+        product: {
+          ...productArgs.product,
+          title: { en: 'Updated scope product', ar: 'منتج النطاق المحدّث' },
+        },
+      },
+    });
+    const updateOperationId = String(readToolText(updatedProduct).operationId);
+    assert.equal(state.products.get('scope-product-amazon')?.title && (state.products.get('scope-product-amazon')?.title as { en: string }).en, 'Updated scope product');
+
+    const disabledEditorial = await client.callTool({
+      name: 'aqurivo_save_editorial_content',
+      arguments: guideArgs,
+    });
+    assert.equal(disabledEditorial.isError, true);
+    assert.equal(state.content.size, 0);
+
+    savedControls = { products: false, editorial: true };
+    const disabledProductAgain = await client.callTool({
+      name: 'aqurivo_save_product',
+      arguments: productArgs,
+    });
+    assert.equal(disabledProductAgain.isError, true);
+    const enabledEditorial = await client.callTool({
+      name: 'aqurivo_save_editorial_content',
+      arguments: guideArgs,
+    });
+    assert.equal(readToolText(enabledEditorial).verified, true);
+    assert.equal(state.content.size, 1);
+
+    savedControls = { products: false, editorial: true };
+    const deniedRestore = await client.callTool({
+      name: 'aqurivo_restore_change',
+      arguments: { operationId: updateOperationId, confirm: true },
+    });
+    assert.equal(deniedRestore.isError, true);
+    assert.equal(
+      (state.products.get('scope-product-amazon')?.title as { en: string }).en,
+      'Updated scope product'
+    );
+  } finally {
+    await client.close();
+    await server.close();
+  }
+});
+
 test('production product-write scope does not enable other write tools', async () => {
   const { dependencies, state } = createFakeDependencies();
   const productWritePolicy = () => ({
@@ -408,6 +591,7 @@ test('production product-write scope does not enable other write tools', async (
     target: 'production' as const,
     canWrite: false,
     canWriteProducts: true,
+    canWriteEditorial: false,
     canDelete: false,
   });
   const { client, server } = await connectServer(dependencies, productWritePolicy);
@@ -585,6 +769,7 @@ test('local policy rejects hosted database URLs and production requires explicit
   assert.equal(production.canRead, true);
   assert.equal(production.canWrite, false);
   assert.equal(production.canWriteProducts, false);
+  assert.equal(production.canWriteEditorial, false);
 
   const productWritesOnly = getMcpPolicy({
     AQURIVO_MCP_TARGET: 'production',
@@ -599,7 +784,122 @@ test('local policy rejects hosted database URLs and production requires explicit
   assert.equal(productWritesOnly.canRead, true);
   assert.equal(productWritesOnly.canWrite, false);
   assert.equal(productWritesOnly.canWriteProducts, true);
+  assert.equal(productWritesOnly.canWriteEditorial, false);
   assert.equal(productWritesOnly.canDelete, false);
+
+  const editorialWritesOnly = getMcpPolicy({
+    AQURIVO_MCP_TARGET: 'production',
+    DATA_STORE: 'turso',
+    NEXT_PUBLIC_DATA_STORE: 'turso',
+    TURSO_DATABASE_URL: 'libsql://production.example',
+    TURSO_AUTH_TOKEN: 'not-used-by-this-policy-test',
+    AQURIVO_MCP_ALLOW_PRODUCTION_READS: 'true',
+    AQURIVO_MCP_ENABLE_WRITES: 'true',
+    AQURIVO_MCP_ALLOW_PRODUCTION_EDITORIAL_WRITES: 'true',
+  });
+  assert.equal(editorialWritesOnly.canRead, true);
+  assert.equal(editorialWritesOnly.canWrite, false);
+  assert.equal(editorialWritesOnly.canWriteProducts, false);
+  assert.equal(editorialWritesOnly.canWriteEditorial, true);
+  assert.equal(editorialWritesOnly.canDelete, false);
+});
+
+test('persisted MCP controls cannot exceed production write environment gates', () => {
+  const env = {
+    AQURIVO_MCP_TARGET: 'production',
+    DATA_STORE: 'turso',
+    NEXT_PUBLIC_DATA_STORE: 'turso',
+    TURSO_DATABASE_URL: 'libsql://production.example',
+    TURSO_AUTH_TOKEN: 'not-used-by-this-policy-test',
+    AQURIVO_MCP_ALLOW_PRODUCTION_READS: 'true',
+    AQURIVO_MCP_ENABLE_WRITES: 'true',
+    AQURIVO_MCP_ALLOW_PRODUCTION_PRODUCT_WRITES: 'false',
+    AQURIVO_MCP_ALLOW_PRODUCTION_EDITORIAL_WRITES: 'true',
+  };
+  const base = getMcpPolicy(env);
+  const effective = applyMcpWriteControls(
+    base,
+    { products: true, editorial: true },
+    env
+  );
+
+  assert.equal(effective.canWriteProducts, false);
+  assert.equal(effective.canWriteEditorial, true);
+  assert.equal(effective.canWrite, false);
+  assert.equal(effective.canDelete, false);
+
+  const productPreferenceOnly = applyMcpWriteControls(
+    base,
+    { products: false },
+    env
+  );
+  assert.equal(productPreferenceOnly.canWriteProducts, false);
+  assert.equal(productPreferenceOnly.canWriteEditorial, true);
+});
+
+test('unconfigured dashboard still honors explicit false MCP write limits', () => {
+  const policy = getMcpPolicy({});
+  const productBlocked = getMcpPolicy({
+    AQURIVO_MCP_ALLOW_PRODUCTION_PRODUCT_WRITES: 'false',
+  });
+  const editorialBlocked = getMcpPolicy({
+    AQURIVO_MCP_ALLOW_PRODUCTION_EDITORIAL_WRITES: 'false',
+  });
+  const masterBlocked = getMcpPolicy({
+    AQURIVO_MCP_ENABLE_WRITES: 'false',
+  });
+
+  assert.deepEqual(getMcpWriteLimits(policy, {}), {
+    products: true,
+    editorial: true,
+  });
+  assert.deepEqual(
+    getMcpWriteLimits(productBlocked, {
+      AQURIVO_MCP_ALLOW_PRODUCTION_PRODUCT_WRITES: 'false',
+    }),
+    { products: false, editorial: true }
+  );
+  assert.deepEqual(
+    getMcpWriteLimits(editorialBlocked, {
+      AQURIVO_MCP_ALLOW_PRODUCTION_EDITORIAL_WRITES: 'false',
+    }),
+    { products: true, editorial: false }
+  );
+  assert.deepEqual(
+    getMcpWriteLimits(masterBlocked, {
+      AQURIVO_MCP_ENABLE_WRITES: 'false',
+    }),
+    { products: false, editorial: false }
+  );
+});
+
+test('missing MCP dashboard controls preserve legacy environment-derived scopes', () => {
+  const env = {
+    AQURIVO_MCP_TARGET: 'production',
+    DATA_STORE: 'turso',
+    NEXT_PUBLIC_DATA_STORE: 'turso',
+    TURSO_DATABASE_URL: 'libsql://production.example',
+    TURSO_AUTH_TOKEN: 'not-used-by-this-policy-test',
+    AQURIVO_MCP_ALLOW_PRODUCTION_READS: 'true',
+    AQURIVO_MCP_ENABLE_WRITES: 'true',
+    AQURIVO_MCP_ALLOW_PRODUCTION_WRITES: 'true',
+    AQURIVO_MCP_ALLOW_PRODUCTION_PRODUCT_WRITES: 'false',
+    AQURIVO_MCP_ALLOW_PRODUCTION_EDITORIAL_WRITES: 'false',
+  };
+  const configured = getMcpPolicy(env);
+  const fallback = applyMcpWriteControls(configured, null, env);
+  const explicitOff = applyMcpWriteControls(
+    configured,
+    { products: false, editorial: false },
+    env
+  );
+
+  assert.equal(fallback.canWriteProducts, true);
+  assert.equal(fallback.canWriteEditorial, true);
+  assert.equal(explicitOff.canWriteProducts, false);
+  assert.equal(explicitOff.canWriteEditorial, false);
+  assert.equal(explicitOff.canWrite, configured.canWrite);
+  assert.equal(explicitOff.canDelete, configured.canDelete);
 });
 
 test('site audit samples only same-origin sitemap pages and reports missing SEO metadata', async () => {

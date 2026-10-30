@@ -10,6 +10,7 @@ import {
   type AuditedEntity,
 } from './audit';
 import {
+  requireEditorialWriteAccess,
   requireProductWriteAccess,
   requireReadAccess,
   requireWriteAccess,
@@ -44,7 +45,7 @@ export interface McpDomainDependencies {
 }
 
 export interface McpToolOptions {
-  policy: () => McpPolicy;
+  policy: () => McpPolicy | Promise<McpPolicy>;
   audit: AuditStore;
   auditBaseUrl: string;
   fetcher?: typeof fetch;
@@ -375,7 +376,7 @@ export function registerAqurivoTools(
   const { policy, audit, auditBaseUrl, fetcher = fetch } = options;
 
   server.registerTool('aqurivo_status', { description: 'Show configured AQURIVO MCP database target and effective access scopes.' }, async () =>
-    result(policy())
+    result(await policy())
   );
 
   server.registerTool(
@@ -390,7 +391,7 @@ export function registerAqurivoTools(
     },
     async ({ query, status, limit }) => {
       try {
-        requireReadAccess(policy());
+        requireReadAccess(await policy());
         const normalized = query?.toLocaleLowerCase().trim() || '';
         const items = (await dependencies.products.list()).filter((item) => {
           const matchesStatus = status === 'all' || item.status === status;
@@ -409,7 +410,7 @@ export function registerAqurivoTools(
     { description: 'List partner stores configured in AQURIVO, used by product records.' },
     async () => {
       try {
-        requireReadAccess(policy());
+        requireReadAccess(await policy());
         return result({ sources: await dependencies.sources.list() });
       } catch (error) {
         return result({ error: errorMessage(error) }, true);
@@ -429,7 +430,7 @@ export function registerAqurivoTools(
     },
     async ({ product, existingId, confirm }) => {
       try {
-        requireProductWriteAccess(policy(), confirm);
+        requireProductWriteAccess(await policy(), confirm);
         const categories = await dependencies.categories.list();
         if (!categories.some((category) => category.id === product.categoryId || category.slug === product.categoryId)) {
           throw new Error('The category does not exist. Create it with aqurivo_save_category first.');
@@ -479,7 +480,7 @@ export function registerAqurivoTools(
     },
     async ({ productId, confirm }) => {
       try {
-        requireWriteAccess(policy(), confirm, true);
+        requireWriteAccess(await policy(), confirm, true);
         const before = await dependencies.products.get(productId);
         if (!before) throw new Error('The product was not found; nothing was deleted.');
         const operation = await auditedMutation(audit, 'product', 'delete', productId, before, async () => {
@@ -501,7 +502,7 @@ export function registerAqurivoTools(
     { description: 'List active and inactive AQURIVO product categories.' },
     async () => {
       try {
-        requireReadAccess(policy());
+        requireReadAccess(await policy());
         return result({ categories: await dependencies.categories.list() });
       } catch (error) {
         return result({ error: errorMessage(error) }, true);
@@ -520,7 +521,7 @@ export function registerAqurivoTools(
     },
     async ({ category, confirm }) => {
       try {
-        requireWriteAccess(policy(), confirm);
+        requireWriteAccess(await policy(), confirm);
         const before = (await dependencies.categories.list()).find((item) => item.id === category.slug) ?? null;
         const operation = await auditedMutation(
           audit,
@@ -555,7 +556,7 @@ export function registerAqurivoTools(
     },
     async ({ categoryId, confirm }) => {
       try {
-        requireWriteAccess(policy(), confirm, true);
+        requireWriteAccess(await policy(), confirm, true);
         const categories = await dependencies.categories.list();
         const before = categories.find((item) => item.id === categoryId || item.slug === categoryId);
         if (!before) throw new Error('The category was not found; nothing was deleted.');
@@ -589,7 +590,7 @@ export function registerAqurivoTools(
     },
     async ({ query, status, limit }) => {
       try {
-        requireReadAccess(policy());
+        requireReadAccess(await policy());
         const normalized = query?.toLocaleLowerCase().trim() || '';
         const items = (await dependencies.content.list()).filter((item) => {
           const matchesStatus = status === 'all' || item.status === status;
@@ -608,7 +609,7 @@ export function registerAqurivoTools(
     { description: 'Read the public AQURIVO site settings supported by the existing admin settings form.' },
     async () => {
       try {
-        requireReadAccess(policy());
+        requireReadAccess(await policy());
         return result({ settings: await dependencies.settings.get() });
       } catch (error) {
         return result({ error: errorMessage(error) }, true);
@@ -627,7 +628,7 @@ export function registerAqurivoTools(
     },
     async ({ settings, confirm }) => {
       try {
-        requireWriteAccess(policy(), confirm);
+        requireWriteAccess(await policy(), confirm);
         const before = await dependencies.settings.get();
         const operation = await auditedMutation(
           audit,
@@ -667,7 +668,7 @@ export function registerAqurivoTools(
     },
     async ({ content, existingId, confirm }) => {
       try {
-        requireWriteAccess(policy(), confirm);
+        requireEditorialWriteAccess(await policy(), confirm);
         const id = existingId || content.slug;
         const before = await dependencies.content.get(id);
         if (before && !existingId) {
@@ -707,7 +708,7 @@ export function registerAqurivoTools(
     },
     async ({ contentId, confirm }) => {
       try {
-        requireWriteAccess(policy(), confirm, true);
+        requireWriteAccess(await policy(), confirm, true);
         const before = await dependencies.content.get(contentId);
         if (!before) throw new Error('Editorial content was not found; nothing was deleted.');
         const operation = await auditedMutation(audit, 'content', 'delete', contentId, before, async () => {
@@ -778,7 +779,20 @@ export function registerAqurivoTools(
         const entry = await audit.find(operationId);
         if (!entry) throw new Error('No completed audit record exists for that operation ID.');
         const isCreateRollback = entry.before === null;
-        requireWriteAccess(policy(), confirm, isCreateRollback);
+        const activePolicy = await policy();
+        if (entry.entity === 'product') {
+          requireProductWriteAccess(activePolicy, confirm);
+          if (isCreateRollback) {
+            requireWriteAccess(activePolicy, confirm, true);
+          }
+        } else if (entry.entity === 'content') {
+          requireEditorialWriteAccess(activePolicy, confirm);
+          if (isCreateRollback) {
+            requireWriteAccess(activePolicy, confirm, true);
+          }
+        } else {
+          requireWriteAccess(activePolicy, confirm, isCreateRollback);
+        }
 
         const current = await readEntity(dependencies, entry.entity, entry.entityId);
         if (hashAuditSnapshot(current) !== entry.afterSha256) {
