@@ -71,7 +71,8 @@ function getImageRecords(raw: Record<string, unknown>, title: { en: string; ar: 
 
   for (const entry of sourceImages) {
     const url = getImageUrl(entry);
-    if (!url || !isSafeImageUrl(url)) {
+    if (!url) continue;
+    if (!isSafeImageUrl(url)) {
       invalidCount += 1;
       continue;
     }
@@ -179,9 +180,9 @@ async function main() {
     publishedProducts: snapshot.size,
     productsWithImages: snapshot.size - productsWithoutImages,
     productsWithoutImages,
-    totalUniqueImageReferencesPerProduct: totalImageReferences,
+    uniqueImageReferencesAcrossProducts: totalImageReferences,
     uniqueImageUrlsAcrossCatalog: allUrls.size,
-    invalidOrNonHttpsImageEntries: invalidImageUrls,
+    malformedOrNonHttpsImageUrls: invalidImageUrls,
     duplicateImageReferencesWithinProducts: duplicateReferencesWithinProducts,
     productsByCategory: Object.fromEntries(
       [...categoryCounts.entries()].sort((a, b) => b[1] - a[1])
