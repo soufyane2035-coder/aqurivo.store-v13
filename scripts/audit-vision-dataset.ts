@@ -1,8 +1,6 @@
 import { mkdirSync, writeFileSync } from 'node:fs';
 import path from 'node:path';
 import { loadEnvConfig } from '@next/env';
-import { cert, getApps, initializeApp } from 'firebase-admin/app';
-import { getFirestore } from 'firebase-admin/firestore';
 
 type ImageRecord = {
   url: string;
@@ -107,34 +105,13 @@ function getImageRecords(raw: Record<string, unknown>, title: { en: string; ar: 
   };
 }
 
-function getFirestore() {
-  const projectId = (
-    process.env.FIREBASE_ADMIN_PROJECT_ID ||
-    process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID ||
-    ''
-  ).trim();
-  const clientEmail = (process.env.FIREBASE_ADMIN_CLIENT_EMAIL || '').trim();
-  const privateKey = (process.env.FIREBASE_ADMIN_PRIVATE_KEY || '')
-    .trim()
-    .replace(/\\n/g, '\n');
-
-  if (!projectId || !clientEmail || !privateKey) {
-    throw new Error(
-      'Missing Firebase Admin credentials. Set FIREBASE_ADMIN_PROJECT_ID, FIREBASE_ADMIN_CLIENT_EMAIL, and FIREBASE_ADMIN_PRIVATE_KEY in .env.local.'
-    );
-  }
-
-  const app = getApps()[0] || initializeApp({
-    credential: cert({ projectId, clientEmail, privateKey }),
-    projectId,
-  });
-  return getFirestore(app);
-}
-
 async function main() {
   loadEnvConfig(process.cwd());
 
-  const db = getFirestore();
+  // Load the same backend adapter used by Aqurivo only after env files are loaded.
+  // This supports both the current Firestore adapter and an explicitly enabled Turso adapter.
+  const { getAdminDb } = await import('../server/config/firebase-admin');
+  const db = getAdminDb();
   const snapshot = await db.collection('products')
     .where('status', '==', 'published')
     .get();
@@ -177,8 +154,8 @@ async function main() {
     generatedAt: new Date().toISOString(),
     collection: 'products',
     filter: { status: 'published' },
-    publishedProducts: snapshot.size,
-    productsWithImages: snapshot.size - productsWithoutImages,
+    publishedProducts: snapshot.docs.length,
+    productsWithImages: snapshot.docs.length - productsWithoutImages,
     productsWithoutImages,
     uniqueImageReferencesAcrossProducts: totalImageReferences,
     uniqueImageUrlsAcrossCatalog: allUrls.size,
@@ -208,8 +185,6 @@ async function main() {
     });
     console.log(`Manifest exported to: ${exportPath}`);
   }
-
-  await db.terminate();
 }
 
 main().catch((error: unknown) => {
