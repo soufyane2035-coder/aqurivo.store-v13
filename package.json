@@ -10,7 +10,8 @@
     "test": "tsx --test",
     "mcp": "node --conditions=react-server --import tsx mcp/server.ts",
     "migrate:firestore": "tsx scripts/migrate-firestore-to-turso.ts",
-    "clean": "next clean"
+    "clean": "next clean",
+    "vision:audit": "node --conditions=react-server --import tsx scripts/audit-vision-dataset.ts"
   },
   "dependencies": {
     "@google/genai": "^1.0.0",
